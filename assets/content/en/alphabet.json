@@ -1,0 +1,293 @@
+{
+  "world": "en",
+  "module": "alphabet",
+  "packSize": 3,
+  "items": [
+    {
+      "id": "en.letter.A",
+      "glyph": "A",
+      "lower": "a",
+      "audio": "audio/en/letters/a.ogg",
+      "word": {
+        "label": "apple",
+        "image": "images/vocab/apple.webp",
+        "audio": "audio/en/words/apple.ogg"
+      }
+    },
+    {
+      "id": "en.letter.B",
+      "glyph": "B",
+      "lower": "b",
+      "audio": "audio/en/letters/b.ogg",
+      "word": {
+        "label": "ball",
+        "image": "images/vocab/ball.webp",
+        "audio": "audio/en/words/ball.ogg"
+      }
+    },
+    {
+      "id": "en.letter.C",
+      "glyph": "C",
+      "lower": "c",
+      "audio": "audio/en/letters/c.ogg",
+      "word": {
+        "label": "cat",
+        "image": "images/vocab/cat.webp",
+        "audio": "audio/en/words/cat.ogg"
+      }
+    },
+    {
+      "id": "en.letter.D",
+      "glyph": "D",
+      "lower": "d",
+      "audio": "audio/en/letters/d.ogg",
+      "word": {
+        "label": "dog",
+        "image": "images/vocab/dog.webp",
+        "audio": "audio/en/words/dog.ogg"
+      }
+    },
+    {
+      "id": "en.letter.E",
+      "glyph": "E",
+      "lower": "e",
+      "audio": "audio/en/letters/e.ogg",
+      "word": {
+        "label": "elephant",
+        "image": "images/vocab/elephant.webp",
+        "audio": "audio/en/words/elephant.ogg"
+      }
+    },
+    {
+      "id": "en.letter.F",
+      "glyph": "F",
+      "lower": "f",
+      "audio": "audio/en/letters/f.ogg",
+      "word": {
+        "label": "fox",
+        "image": "images/vocab/fox.webp",
+        "audio": "audio/en/words/fox.ogg"
+      }
+    },
+    {
+      "id": "en.letter.G",
+      "glyph": "G",
+      "lower": "g",
+      "audio": "audio/en/letters/g.ogg",
+      "word": {
+        "label": "goat",
+        "image": "images/vocab/goat.webp",
+        "audio": "audio/en/words/goat.ogg"
+      }
+    },
+    {
+      "id": "en.letter.H",
+      "glyph": "H",
+      "lower": "h",
+      "audio": "audio/en/letters/h.ogg",
+      "word": {
+        "label": "hat",
+        "image": "images/vocab/hat.webp",
+        "audio": "audio/en/words/hat.ogg"
+      }
+    },
+    {
+      "id": "en.letter.I",
+      "glyph": "I",
+      "lower": "i",
+      "audio": "audio/en/letters/i.ogg",
+      "word": {
+        "label": "igloo",
+        "image": "images/vocab/igloo.webp",
+        "audio": "audio/en/words/igloo.ogg"
+      }
+    },
+    {
+      "id": "en.letter.J",
+      "glyph": "J",
+      "lower": "j",
+      "audio": "audio/en/letters/j.ogg",
+      "word": {
+        "label": "jam",
+        "image": "images/vocab/jam.webp",
+        "audio": "audio/en/words/jam.ogg"
+      }
+    },
+    {
+      "id": "en.letter.K",
+      "glyph": "K",
+      "lower": "k",
+      "audio": "audio/en/letters/k.ogg",
+      "word": {
+        "label": "kite",
+        "image": "images/vocab/kite.webp",
+        "audio": "audio/en/words/kite.ogg"
+      }
+    },
+    {
+      "id": "en.letter.L",
+      "glyph": "L",
+      "lower": "l",
+      "audio": "audio/en/letters/l.ogg",
+      "word": {
+        "label": "lion",
+        "image": "images/vocab/lion.webp",
+        "audio": "audio/en/words/lion.ogg"
+      }
+    },
+    {
+      "id": "en.letter.M",
+      "glyph": "M",
+      "lower": "m",
+      "audio": "audio/en/letters/m.ogg",
+      "word": {
+        "label": "moon",
+        "image": "images/vocab/moon.webp",
+        "audio": "audio/en/words/moon.ogg"
+      }
+    },
+    {
+      "id": "en.letter.N",
+      "glyph": "N",
+      "lower": "n",
+      "audio": "audio/en/letters/n.ogg",
+      "word": {
+        "label": "nest",
+        "image": "images/vocab/nest.webp",
+        "audio": "audio/en/words/nest.ogg"
+      }
+    },
+    {
+      "id": "en.letter.O",
+      "glyph": "O",
+      "lower": "o",
+      "audio": "audio/en/letters/o.ogg",
+      "word": {
+        "label": "owl",
+        "image": "images/vocab/owl.webp",
+        "audio": "audio/en/words/owl.ogg"
+      }
+    },
+    {
+      "id": "en.letter.P",
+      "glyph": "P",
+      "lower": "p",
+      "audio": "audio/en/letters/p.ogg",
+      "word": {
+        "label": "pig",
+        "image": "images/vocab/pig.webp",
+        "audio": "audio/en/words/pig.ogg"
+      }
+    },
+    {
+      "id": "en.letter.Q",
+      "glyph": "Q",
+      "lower": "q",
+      "audio": "audio/en/letters/q.ogg",
+      "word": {
+        "label": "queen",
+        "image": "images/vocab/queen.webp",
+        "audio": "audio/en/words/queen.ogg"
+      }
+    },
+    {
+      "id": "en.letter.R",
+      "glyph": "R",
+      "lower": "r",
+      "audio": "audio/en/letters/r.ogg",
+      "word": {
+        "label": "rabbit",
+        "image": "images/vocab/rabbit.webp",
+        "audio": "audio/en/words/rabbit.ogg"
+      }
+    },
+    {
+      "id": "en.letter.S",
+      "glyph": "S",
+      "lower": "s",
+      "audio": "audio/en/letters/s.ogg",
+      "word": {
+        "label": "sun",
+        "image": "images/vocab/sun.webp",
+        "audio": "audio/en/words/sun.ogg"
+      }
+    },
+    {
+      "id": "en.letter.T",
+      "glyph": "T",
+      "lower": "t",
+      "audio": "audio/en/letters/t.ogg",
+      "word": {
+        "label": "tiger",
+        "image": "images/vocab/tiger.webp",
+        "audio": "audio/en/words/tiger.ogg"
+      }
+    },
+    {
+      "id": "en.letter.U",
+      "glyph": "U",
+      "lower": "u",
+      "audio": "audio/en/letters/u.ogg",
+      "word": {
+        "label": "umbrella",
+        "image": "images/vocab/umbrella.webp",
+        "audio": "audio/en/words/umbrella.ogg"
+      }
+    },
+    {
+      "id": "en.letter.V",
+      "glyph": "V",
+      "lower": "v",
+      "audio": "audio/en/letters/v.ogg",
+      "word": {
+        "label": "van",
+        "image": "images/vocab/van.webp",
+        "audio": "audio/en/words/van.ogg"
+      }
+    },
+    {
+      "id": "en.letter.W",
+      "glyph": "W",
+      "lower": "w",
+      "audio": "audio/en/letters/w.ogg",
+      "word": {
+        "label": "whale",
+        "image": "images/vocab/whale.webp",
+        "audio": "audio/en/words/whale.ogg"
+      }
+    },
+    {
+      "id": "en.letter.X",
+      "glyph": "X",
+      "lower": "x",
+      "audio": "audio/en/letters/x.ogg",
+      "word": {
+        "label": "x-ray",
+        "image": "images/vocab/x_ray.webp",
+        "audio": "audio/en/words/x_ray.ogg"
+      }
+    },
+    {
+      "id": "en.letter.Y",
+      "glyph": "Y",
+      "lower": "y",
+      "audio": "audio/en/letters/y.ogg",
+      "word": {
+        "label": "yo-yo",
+        "image": "images/vocab/yo_yo.webp",
+        "audio": "audio/en/words/yo_yo.ogg"
+      }
+    },
+    {
+      "id": "en.letter.Z",
+      "glyph": "Z",
+      "lower": "z",
+      "audio": "audio/en/letters/z.ogg",
+      "word": {
+        "label": "zebra",
+        "image": "images/vocab/zebra.webp",
+        "audio": "audio/en/words/zebra.ogg"
+      }
+    }
+  ]
+}

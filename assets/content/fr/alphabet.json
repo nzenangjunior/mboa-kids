@@ -1,0 +1,293 @@
+{
+  "world": "fr",
+  "module": "alphabet",
+  "packSize": 3,
+  "items": [
+    {
+      "id": "fr.letter.A",
+      "glyph": "A",
+      "lower": "a",
+      "audio": "audio/fr/letters/a.ogg",
+      "word": {
+        "label": "abeille",
+        "image": "images/vocab/abeille.webp",
+        "audio": "audio/fr/words/abeille.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.B",
+      "glyph": "B",
+      "lower": "b",
+      "audio": "audio/fr/letters/b.ogg",
+      "word": {
+        "label": "balle",
+        "image": "images/vocab/balle.webp",
+        "audio": "audio/fr/words/balle.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.C",
+      "glyph": "C",
+      "lower": "c",
+      "audio": "audio/fr/letters/c.ogg",
+      "word": {
+        "label": "chat",
+        "image": "images/vocab/chat.webp",
+        "audio": "audio/fr/words/chat.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.D",
+      "glyph": "D",
+      "lower": "d",
+      "audio": "audio/fr/letters/d.ogg",
+      "word": {
+        "label": "dinosaure",
+        "image": "images/vocab/dinosaure.webp",
+        "audio": "audio/fr/words/dinosaure.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.E",
+      "glyph": "E",
+      "lower": "e",
+      "audio": "audio/fr/letters/e.ogg",
+      "word": {
+        "label": "éléphant",
+        "image": "images/vocab/elephant.webp",
+        "audio": "audio/fr/words/elephant.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.F",
+      "glyph": "F",
+      "lower": "f",
+      "audio": "audio/fr/letters/f.ogg",
+      "word": {
+        "label": "fleur",
+        "image": "images/vocab/fleur.webp",
+        "audio": "audio/fr/words/fleur.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.G",
+      "glyph": "G",
+      "lower": "g",
+      "audio": "audio/fr/letters/g.ogg",
+      "word": {
+        "label": "gâteau",
+        "image": "images/vocab/gateau.webp",
+        "audio": "audio/fr/words/gateau.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.H",
+      "glyph": "H",
+      "lower": "h",
+      "audio": "audio/fr/letters/h.ogg",
+      "word": {
+        "label": "hibou",
+        "image": "images/vocab/hibou.webp",
+        "audio": "audio/fr/words/hibou.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.I",
+      "glyph": "I",
+      "lower": "i",
+      "audio": "audio/fr/letters/i.ogg",
+      "word": {
+        "label": "igloo",
+        "image": "images/vocab/igloo.webp",
+        "audio": "audio/fr/words/igloo.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.J",
+      "glyph": "J",
+      "lower": "j",
+      "audio": "audio/fr/letters/j.ogg",
+      "word": {
+        "label": "jardin",
+        "image": "images/vocab/jardin.webp",
+        "audio": "audio/fr/words/jardin.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.K",
+      "glyph": "K",
+      "lower": "k",
+      "audio": "audio/fr/letters/k.ogg",
+      "word": {
+        "label": "kangourou",
+        "image": "images/vocab/kangourou.webp",
+        "audio": "audio/fr/words/kangourou.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.L",
+      "glyph": "L",
+      "lower": "l",
+      "audio": "audio/fr/letters/l.ogg",
+      "word": {
+        "label": "lune",
+        "image": "images/vocab/lune.webp",
+        "audio": "audio/fr/words/lune.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.M",
+      "glyph": "M",
+      "lower": "m",
+      "audio": "audio/fr/letters/m.ogg",
+      "word": {
+        "label": "maison",
+        "image": "images/vocab/maison.webp",
+        "audio": "audio/fr/words/maison.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.N",
+      "glyph": "N",
+      "lower": "n",
+      "audio": "audio/fr/letters/n.ogg",
+      "word": {
+        "label": "nuage",
+        "image": "images/vocab/nuage.webp",
+        "audio": "audio/fr/words/nuage.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.O",
+      "glyph": "O",
+      "lower": "o",
+      "audio": "audio/fr/letters/o.ogg",
+      "word": {
+        "label": "oiseau",
+        "image": "images/vocab/oiseau.webp",
+        "audio": "audio/fr/words/oiseau.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.P",
+      "glyph": "P",
+      "lower": "p",
+      "audio": "audio/fr/letters/p.ogg",
+      "word": {
+        "label": "poisson",
+        "image": "images/vocab/poisson.webp",
+        "audio": "audio/fr/words/poisson.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.Q",
+      "glyph": "Q",
+      "lower": "q",
+      "audio": "audio/fr/letters/q.ogg",
+      "word": {
+        "label": "quille",
+        "image": "images/vocab/quille.webp",
+        "audio": "audio/fr/words/quille.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.R",
+      "glyph": "R",
+      "lower": "r",
+      "audio": "audio/fr/letters/r.ogg",
+      "word": {
+        "label": "robot",
+        "image": "images/vocab/robot.webp",
+        "audio": "audio/fr/words/robot.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.S",
+      "glyph": "S",
+      "lower": "s",
+      "audio": "audio/fr/letters/s.ogg",
+      "word": {
+        "label": "soleil",
+        "image": "images/vocab/soleil.webp",
+        "audio": "audio/fr/words/soleil.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.T",
+      "glyph": "T",
+      "lower": "t",
+      "audio": "audio/fr/letters/t.ogg",
+      "word": {
+        "label": "tortue",
+        "image": "images/vocab/tortue.webp",
+        "audio": "audio/fr/words/tortue.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.U",
+      "glyph": "U",
+      "lower": "u",
+      "audio": "audio/fr/letters/u.ogg",
+      "word": {
+        "label": "usine",
+        "image": "images/vocab/usine.webp",
+        "audio": "audio/fr/words/usine.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.V",
+      "glyph": "V",
+      "lower": "v",
+      "audio": "audio/fr/letters/v.ogg",
+      "word": {
+        "label": "voiture",
+        "image": "images/vocab/voiture.webp",
+        "audio": "audio/fr/words/voiture.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.W",
+      "glyph": "W",
+      "lower": "w",
+      "audio": "audio/fr/letters/w.ogg",
+      "word": {
+        "label": "wagon",
+        "image": "images/vocab/wagon.webp",
+        "audio": "audio/fr/words/wagon.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.X",
+      "glyph": "X",
+      "lower": "x",
+      "audio": "audio/fr/letters/x.ogg",
+      "word": {
+        "label": "xylophone",
+        "image": "images/vocab/xylophone.webp",
+        "audio": "audio/fr/words/xylophone.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.Y",
+      "glyph": "Y",
+      "lower": "y",
+      "audio": "audio/fr/letters/y.ogg",
+      "word": {
+        "label": "yaourt",
+        "image": "images/vocab/yaourt.webp",
+        "audio": "audio/fr/words/yaourt.ogg"
+      }
+    },
+    {
+      "id": "fr.letter.Z",
+      "glyph": "Z",
+      "lower": "z",
+      "audio": "audio/fr/letters/z.ogg",
+      "word": {
+        "label": "zèbre",
+        "image": "images/vocab/zebre.webp",
+        "audio": "audio/fr/words/zebre.ogg"
+      }
+    }
+  ]
+}

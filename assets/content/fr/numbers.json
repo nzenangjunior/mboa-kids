@@ -1,0 +1,21 @@
+{
+  "world": "fr",
+  "module": "numbers",
+  "recognize": [
+    [
+      0,
+      20
+    ],
+    [
+      21,
+      50
+    ],
+    [
+      51,
+      100
+    ]
+  ],
+  "countObjectsMax": 20,
+  "writeMax": 20,
+  "countByTensMax": 100
+}
