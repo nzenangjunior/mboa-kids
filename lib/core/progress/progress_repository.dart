@@ -1,13 +1,19 @@
+import '../rewards/intensity_level.dart';
 import 'item_progress_snapshot.dart';
 import 'item_state.dart';
 
-/// Storage + progression-engine wiring for one item's progress.
+/// Storage + progression-engine wiring. In practice this is the app's
+/// single persistence gateway: besides per-item progress it also keeps
+/// the celebration intensity and the earned "fin de partie" stickers
+/// (CLAUDE.md section 8), since they live in the same drift database
+/// and a separate repository/connection stack for a couple of values
+/// would just duplicate this one's plumbing.
 ///
-/// Two implementations exist: [DriftProgressRepository] (real SQLite via
-/// drift, used on Android and in tests) and [InMemoryProgressRepository]
-/// (pure Dart, used only for the web dev preview — CLAUDE.md targets
-/// Android only, and drift's native SQLite backend needs `dart:ffi`,
-/// which is not available in a browser).
+/// [DriftProgressRepository] (real SQLite via drift) is the only
+/// implementation: a native file on Android/desktop, sqlite3 compiled to
+/// WebAssembly on the web dev preview (CLAUDE.md targets Android only;
+/// the web path exists purely so progress survives while there is no
+/// tablet at hand).
 abstract class ProgressRepository {
   Future<ItemProgressSnapshot> snapshotFor(String itemId);
 
@@ -23,6 +29,17 @@ abstract class ProgressRepository {
   });
 
   Future<Map<String, ItemState>> statesFor(List<String> itemIds);
+
+  /// Records that [stickerId] (from `assets/content/stickers.json`) was
+  /// earned by finishing a game. Kept forever, even duplicates: the
+  /// album only needs to know it was earned at least once.
+  Future<void> recordStickerEarned(String stickerId, DateTime earnedAt);
+
+  /// Every distinct "fin de partie" sticker id ever earned.
+  Future<Set<String>> earnedStickerIds();
+
+  Future<IntensityLevel> intensity();
+  Future<void> setIntensity(IntensityLevel level);
 
   Future<void> dispose();
 }

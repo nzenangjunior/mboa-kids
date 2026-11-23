@@ -12,8 +12,11 @@ import '../../core/content/alphabet_round.dart';
 import '../../core/content/models/alphabet_item.dart';
 import '../../core/progress/item_state.dart';
 import '../../core/progress/pack_unlocker.dart';
+import '../../core/rewards/star_rating.dart';
+import '../../core/rewards/sticker_catalog.dart';
 import '../../shared/widgets/choice_card.dart';
 import '../../shared/widgets/mascot_tap_target.dart';
+import '../rewards/bravo_result.dart';
 
 enum _AnswerState { waiting, correct, incorrect }
 
@@ -43,7 +46,12 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
   AlphabetGameComposer? _composer;
   List<AlphabetItem>? _unlockedPool;
   List<AlphabetRound>? _rounds;
+  int _mainRoundCount = 0;
   final List<String> _endOfGameQueue = [];
+
+  int _mainCorrectFirstTryCount = 0;
+  final List<String> _newlyAcquiredGlyphs = [];
+  DateTime? _roundStartFirstAcquiredAt;
 
   int _roundIndex = 0;
   _AnswerState _answerState = _AnswerState.waiting;
@@ -163,6 +171,7 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       _composer = composer;
       _unlockedPool = unlockedPool;
       _rounds = rounds;
+      _mainRoundCount = rounds.length;
     });
   }
 
@@ -177,6 +186,7 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
         _rounds![_roundIndex] = round.trimmedTo(1, _random);
       }
       _aidedMode = aided;
+      _roundStartFirstAcquiredAt = snapshot.firstAcquiredAt;
       _roundReady = true;
     });
   }
@@ -206,21 +216,29 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
   ) async {
     final isCorrect = choice.id == round.target.id;
     final firstTry = !_isRetry;
+    final isMainRound = _roundIndex < _mainRoundCount;
     setState(() {
       _selectedId = choice.id;
       _answerState = isCorrect ? _AnswerState.correct : _AnswerState.incorrect;
     });
 
-    await ref.read(progressRepositoryProvider).recordAnswer(
+    final updated = await ref.read(progressRepositoryProvider).recordAnswer(
           itemId: round.target.id,
           correct: isCorrect,
           firstTry: firstTry,
           today: ref.read(engineClockProvider)(),
         );
 
+    if (_roundStartFirstAcquiredAt == null && updated.firstAcquiredAt != null) {
+      _newlyAcquiredGlyphs.add(round.target.glyph);
+    }
+
     final audio = await ref.read(audioServiceProvider(world).future);
     if (isCorrect) {
-      await audio.playSfx('success_chime');
+      if (isMainRound && firstTry) {
+        _mainCorrectFirstTryCount++;
+      }
+      unawaited(_playCorrectAnswerAudio(audio));
       _advanceTimer?.cancel();
       _advanceTimer = Timer(_autoAdvanceDelay, _goToNextRound);
     } else {
@@ -237,6 +255,11 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
         () => _retrySameRound(round),
       );
     }
+  }
+
+  Future<void> _playCorrectAnswerAudio(AudioService audio) async {
+    await audio.playSfx('success_chime');
+    await audio.playPraise();
   }
 
   Future<void> _playWrongAnswerAudio(AudioService audio, AlphabetRound round) async {
@@ -289,6 +312,23 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       return;
     }
 
-    context.go('/bravo');
+    _finishGame();
+  }
+
+  Future<void> _finishGame() async {
+    final repository = ref.read(progressRepositoryProvider);
+    final catalog = await ref.read(stickerCatalogListProvider.future);
+    final sticker = pickRandomSticker(catalog, _random);
+    await repository.recordStickerEarned(sticker.id, ref.read(engineClockProvider)());
+
+    if (!mounted) return;
+    context.go(
+      '/bravo',
+      extra: BravoResult(
+        stars: starsForFirstTryCorrect(_mainCorrectFirstTryCount),
+        gameSticker: sticker,
+        newlyAcquiredLetterGlyphs: _newlyAcquiredGlyphs,
+      ),
+    );
   }
 }

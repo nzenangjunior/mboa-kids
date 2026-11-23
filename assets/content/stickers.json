@@ -1,0 +1,12 @@
+{
+  "stickers": [
+    { "id": "sticker.star", "emoji": "⭐" },
+    { "id": "sticker.cat", "emoji": "🐱" },
+    { "id": "sticker.flower", "emoji": "🌸" },
+    { "id": "sticker.sun", "emoji": "☀️" },
+    { "id": "sticker.butterfly", "emoji": "🦋" },
+    { "id": "sticker.rainbow", "emoji": "🌈" },
+    { "id": "sticker.dog", "emoji": "🐶" },
+    { "id": "sticker.balloon", "emoji": "🎈" }
+  ]
+}

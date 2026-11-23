@@ -15,9 +15,27 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
   String? _currentLocale;
   bool _voicesChecked = false;
   bool _awaitCompletionSet = false;
+  Future<void> _queue = Future<void>.value();
 
+  /// Different screens call [speak] from independent async chains (e.g. the
+  /// wrong-answer feedback and, a second later, the next round's prompt)
+  /// without awaiting each other. [_ensureAwaitsCompletion] only stops a
+  /// *single* caller from moving on before its own utterance finishes; it
+  /// does nothing to stop a second, unrelated caller from starting a new
+  /// utterance while the first is still in flight. On the web, that overlap
+  /// makes `speechSynthesis` interrupt the first utterance while it's still
+  /// dispatching word-boundary events for it, which then read a `charIndex`
+  /// out of range for the new text and throw (see the comment below). So
+  /// every call is chained onto [_queue] here, regardless of call site, to
+  /// guarantee true one-at-a-time playback.
   @override
-  Future<void> speak(String text, {required String locale}) async {
+  Future<void> speak(String text, {required String locale}) {
+    final result = _queue.then((_) => _speakNow(text, locale));
+    _queue = result.catchError((_) {});
+    return result;
+  }
+
+  Future<void> _speakNow(String text, String locale) async {
     await _ensureVoicesLoaded();
     await _ensureAwaitsCompletion();
 

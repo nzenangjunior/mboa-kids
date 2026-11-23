@@ -13,6 +13,8 @@ import '../core/progress/progress_repository.dart';
 import '../core/progress/progress_repository_io.dart'
     if (dart.library.js_interop) '../core/progress/progress_repository_web.dart';
 import '../core/progress/progression_engine.dart';
+import '../core/rewards/intensity_level.dart';
+import '../core/rewards/sticker_catalog.dart';
 
 /// The world (fr/en) chosen for the current session. Never changed mid
 /// game: CLAUDE.md section 2.6 says the two worlds are never mixed within
@@ -50,6 +52,21 @@ final engineClockProvider = Provider<DateTime Function()>((ref) {
 
 final alphabetContentProvider = FutureProvider.family<AlphabetContent, String>(
   (ref, world) => ref.read(contentLoaderProvider).loadAlphabet(world),
+);
+
+final stickerCatalogProvider = Provider<StickerCatalog>(
+  (ref) => StickerCatalog(rootBundle),
+);
+
+final stickerCatalogListProvider = FutureProvider<List<GameSticker>>(
+  (ref) => ref.read(stickerCatalogProvider).load(),
+);
+
+/// Celebration intensity (CLAUDE.md section 8), persisted, `normal` by
+/// default. There is no settings screen yet to change it from (that's
+/// étape 9), so the debug panel exposes a temporary way to test it.
+final intensityProvider = FutureProvider<IntensityLevel>(
+  (ref) => ref.read(progressRepositoryProvider).intensity(),
 );
 
 const _promptSpokenText = {

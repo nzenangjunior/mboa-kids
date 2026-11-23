@@ -9,6 +9,7 @@ import '../../core/progress/item_progress_snapshot.dart';
 import '../../core/progress/item_state.dart';
 import '../../core/progress/pack_unlocker.dart';
 import '../../core/progress/progress_repository.dart';
+import '../../core/rewards/intensity_level.dart';
 
 final _debugWorldProvider = StateProvider<String>((ref) => 'fr');
 
@@ -24,6 +25,7 @@ class ProgressDebugScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final world = ref.watch(_debugWorldProvider);
     final alphabetAsync = ref.watch(alphabetContentProvider(world));
+    final intensityAsync = ref.watch(intensityProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -41,6 +43,24 @@ class ProgressDebugScreen extends ConsumerWidget {
                   ref.read(_debugWorldProvider.notifier).state = selection.first,
             ),
           ),
+          if (intensityAsync.hasValue)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: SegmentedButton<IntensityLevel>(
+                segments: const [
+                  ButtonSegment(value: IntensityLevel.calme, label: Text('Calme')),
+                  ButtonSegment(value: IntensityLevel.normal, label: Text('Normal')),
+                  ButtonSegment(value: IntensityLevel.fete, label: Text('Fête')),
+                ],
+                selected: {intensityAsync.value!},
+                onSelectionChanged: (selection) async {
+                  await ref
+                      .read(progressRepositoryProvider)
+                      .setIntensity(selection.first);
+                  ref.invalidate(intensityProvider);
+                },
+              ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

@@ -707,6 +707,447 @@ class CorrectFirstTryDaysCompanion extends UpdateCompanion<CorrectFirstTryDay> {
   }
 }
 
+class $EarnedStickerRowsTable extends EarnedStickerRows
+    with TableInfo<$EarnedStickerRowsTable, EarnedStickerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EarnedStickerRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _stickerIdMeta = const VerificationMeta(
+    'stickerId',
+  );
+  @override
+  late final GeneratedColumn<String> stickerId = GeneratedColumn<String>(
+    'sticker_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _earnedAtMeta = const VerificationMeta(
+    'earnedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> earnedAt = GeneratedColumn<DateTime>(
+    'earned_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, stickerId, earnedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'earned_sticker_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EarnedStickerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sticker_id')) {
+      context.handle(
+        _stickerIdMeta,
+        stickerId.isAcceptableOrUnknown(data['sticker_id']!, _stickerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stickerIdMeta);
+    }
+    if (data.containsKey('earned_at')) {
+      context.handle(
+        _earnedAtMeta,
+        earnedAt.isAcceptableOrUnknown(data['earned_at']!, _earnedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_earnedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EarnedStickerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EarnedStickerRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      stickerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sticker_id'],
+      )!,
+      earnedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}earned_at'],
+      )!,
+    );
+  }
+
+  @override
+  $EarnedStickerRowsTable createAlias(String alias) {
+    return $EarnedStickerRowsTable(attachedDatabase, alias);
+  }
+}
+
+class EarnedStickerRow extends DataClass
+    implements Insertable<EarnedStickerRow> {
+  final int id;
+  final String stickerId;
+  final DateTime earnedAt;
+  const EarnedStickerRow({
+    required this.id,
+    required this.stickerId,
+    required this.earnedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['sticker_id'] = Variable<String>(stickerId);
+    map['earned_at'] = Variable<DateTime>(earnedAt);
+    return map;
+  }
+
+  EarnedStickerRowsCompanion toCompanion(bool nullToAbsent) {
+    return EarnedStickerRowsCompanion(
+      id: Value(id),
+      stickerId: Value(stickerId),
+      earnedAt: Value(earnedAt),
+    );
+  }
+
+  factory EarnedStickerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EarnedStickerRow(
+      id: serializer.fromJson<int>(json['id']),
+      stickerId: serializer.fromJson<String>(json['stickerId']),
+      earnedAt: serializer.fromJson<DateTime>(json['earnedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'stickerId': serializer.toJson<String>(stickerId),
+      'earnedAt': serializer.toJson<DateTime>(earnedAt),
+    };
+  }
+
+  EarnedStickerRow copyWith({int? id, String? stickerId, DateTime? earnedAt}) =>
+      EarnedStickerRow(
+        id: id ?? this.id,
+        stickerId: stickerId ?? this.stickerId,
+        earnedAt: earnedAt ?? this.earnedAt,
+      );
+  EarnedStickerRow copyWithCompanion(EarnedStickerRowsCompanion data) {
+    return EarnedStickerRow(
+      id: data.id.present ? data.id.value : this.id,
+      stickerId: data.stickerId.present ? data.stickerId.value : this.stickerId,
+      earnedAt: data.earnedAt.present ? data.earnedAt.value : this.earnedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EarnedStickerRow(')
+          ..write('id: $id, ')
+          ..write('stickerId: $stickerId, ')
+          ..write('earnedAt: $earnedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, stickerId, earnedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EarnedStickerRow &&
+          other.id == this.id &&
+          other.stickerId == this.stickerId &&
+          other.earnedAt == this.earnedAt);
+}
+
+class EarnedStickerRowsCompanion extends UpdateCompanion<EarnedStickerRow> {
+  final Value<int> id;
+  final Value<String> stickerId;
+  final Value<DateTime> earnedAt;
+  const EarnedStickerRowsCompanion({
+    this.id = const Value.absent(),
+    this.stickerId = const Value.absent(),
+    this.earnedAt = const Value.absent(),
+  });
+  EarnedStickerRowsCompanion.insert({
+    this.id = const Value.absent(),
+    required String stickerId,
+    required DateTime earnedAt,
+  }) : stickerId = Value(stickerId),
+       earnedAt = Value(earnedAt);
+  static Insertable<EarnedStickerRow> custom({
+    Expression<int>? id,
+    Expression<String>? stickerId,
+    Expression<DateTime>? earnedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (stickerId != null) 'sticker_id': stickerId,
+      if (earnedAt != null) 'earned_at': earnedAt,
+    });
+  }
+
+  EarnedStickerRowsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? stickerId,
+    Value<DateTime>? earnedAt,
+  }) {
+    return EarnedStickerRowsCompanion(
+      id: id ?? this.id,
+      stickerId: stickerId ?? this.stickerId,
+      earnedAt: earnedAt ?? this.earnedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (stickerId.present) {
+      map['sticker_id'] = Variable<String>(stickerId.value);
+    }
+    if (earnedAt.present) {
+      map['earned_at'] = Variable<DateTime>(earnedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EarnedStickerRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('stickerId: $stickerId, ')
+          ..write('earnedAt: $earnedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SettingsRowsTable extends SettingsRows
+    with TableInfo<$SettingsRowsTable, SettingsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SettingsRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _intensityMeta = const VerificationMeta(
+    'intensity',
+  );
+  @override
+  late final GeneratedColumn<String> intensity = GeneratedColumn<String>(
+    'intensity',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('normal'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, intensity];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'settings_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SettingsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('intensity')) {
+      context.handle(
+        _intensityMeta,
+        intensity.isAcceptableOrUnknown(data['intensity']!, _intensityMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SettingsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SettingsRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      intensity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}intensity'],
+      )!,
+    );
+  }
+
+  @override
+  $SettingsRowsTable createAlias(String alias) {
+    return $SettingsRowsTable(attachedDatabase, alias);
+  }
+}
+
+class SettingsRow extends DataClass implements Insertable<SettingsRow> {
+  final int id;
+  final String intensity;
+  const SettingsRow({required this.id, required this.intensity});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['intensity'] = Variable<String>(intensity);
+    return map;
+  }
+
+  SettingsRowsCompanion toCompanion(bool nullToAbsent) {
+    return SettingsRowsCompanion(id: Value(id), intensity: Value(intensity));
+  }
+
+  factory SettingsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SettingsRow(
+      id: serializer.fromJson<int>(json['id']),
+      intensity: serializer.fromJson<String>(json['intensity']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'intensity': serializer.toJson<String>(intensity),
+    };
+  }
+
+  SettingsRow copyWith({int? id, String? intensity}) =>
+      SettingsRow(id: id ?? this.id, intensity: intensity ?? this.intensity);
+  SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
+    return SettingsRow(
+      id: data.id.present ? data.id.value : this.id,
+      intensity: data.intensity.present ? data.intensity.value : this.intensity,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SettingsRow(')
+          ..write('id: $id, ')
+          ..write('intensity: $intensity')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, intensity);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SettingsRow &&
+          other.id == this.id &&
+          other.intensity == this.intensity);
+}
+
+class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
+  final Value<int> id;
+  final Value<String> intensity;
+  const SettingsRowsCompanion({
+    this.id = const Value.absent(),
+    this.intensity = const Value.absent(),
+  });
+  SettingsRowsCompanion.insert({
+    this.id = const Value.absent(),
+    this.intensity = const Value.absent(),
+  });
+  static Insertable<SettingsRow> custom({
+    Expression<int>? id,
+    Expression<String>? intensity,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (intensity != null) 'intensity': intensity,
+    });
+  }
+
+  SettingsRowsCompanion copyWith({Value<int>? id, Value<String>? intensity}) {
+    return SettingsRowsCompanion(
+      id: id ?? this.id,
+      intensity: intensity ?? this.intensity,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (intensity.present) {
+      map['intensity'] = Variable<String>(intensity.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SettingsRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('intensity: $intensity')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ProgressDatabase extends GeneratedDatabase {
   _$ProgressDatabase(QueryExecutor e) : super(e);
   $ProgressDatabaseManager get managers => $ProgressDatabaseManager(this);
@@ -715,6 +1156,9 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
   );
   late final $CorrectFirstTryDaysTable correctFirstTryDays =
       $CorrectFirstTryDaysTable(this);
+  late final $EarnedStickerRowsTable earnedStickerRows =
+      $EarnedStickerRowsTable(this);
+  late final $SettingsRowsTable settingsRows = $SettingsRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -722,6 +1166,8 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     itemProgressRows,
     correctFirstTryDays,
+    earnedStickerRows,
+    settingsRows,
   ];
 }
 
@@ -1161,6 +1607,318 @@ typedef $$CorrectFirstTryDaysTableProcessedTableManager =
       CorrectFirstTryDay,
       PrefetchHooks Function()
     >;
+typedef $$EarnedStickerRowsTableCreateCompanionBuilder =
+    EarnedStickerRowsCompanion Function({
+      Value<int> id,
+      required String stickerId,
+      required DateTime earnedAt,
+    });
+typedef $$EarnedStickerRowsTableUpdateCompanionBuilder =
+    EarnedStickerRowsCompanion Function({
+      Value<int> id,
+      Value<String> stickerId,
+      Value<DateTime> earnedAt,
+    });
+
+class $$EarnedStickerRowsTableFilterComposer
+    extends Composer<_$ProgressDatabase, $EarnedStickerRowsTable> {
+  $$EarnedStickerRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stickerId => $composableBuilder(
+    column: $table.stickerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get earnedAt => $composableBuilder(
+    column: $table.earnedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EarnedStickerRowsTableOrderingComposer
+    extends Composer<_$ProgressDatabase, $EarnedStickerRowsTable> {
+  $$EarnedStickerRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stickerId => $composableBuilder(
+    column: $table.stickerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get earnedAt => $composableBuilder(
+    column: $table.earnedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EarnedStickerRowsTableAnnotationComposer
+    extends Composer<_$ProgressDatabase, $EarnedStickerRowsTable> {
+  $$EarnedStickerRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get stickerId =>
+      $composableBuilder(column: $table.stickerId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get earnedAt =>
+      $composableBuilder(column: $table.earnedAt, builder: (column) => column);
+}
+
+class $$EarnedStickerRowsTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDatabase,
+          $EarnedStickerRowsTable,
+          EarnedStickerRow,
+          $$EarnedStickerRowsTableFilterComposer,
+          $$EarnedStickerRowsTableOrderingComposer,
+          $$EarnedStickerRowsTableAnnotationComposer,
+          $$EarnedStickerRowsTableCreateCompanionBuilder,
+          $$EarnedStickerRowsTableUpdateCompanionBuilder,
+          (
+            EarnedStickerRow,
+            BaseReferences<
+              _$ProgressDatabase,
+              $EarnedStickerRowsTable,
+              EarnedStickerRow
+            >,
+          ),
+          EarnedStickerRow,
+          PrefetchHooks Function()
+        > {
+  $$EarnedStickerRowsTableTableManager(
+    _$ProgressDatabase db,
+    $EarnedStickerRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EarnedStickerRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EarnedStickerRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EarnedStickerRowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> stickerId = const Value.absent(),
+                Value<DateTime> earnedAt = const Value.absent(),
+              }) => EarnedStickerRowsCompanion(
+                id: id,
+                stickerId: stickerId,
+                earnedAt: earnedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String stickerId,
+                required DateTime earnedAt,
+              }) => EarnedStickerRowsCompanion.insert(
+                id: id,
+                stickerId: stickerId,
+                earnedAt: earnedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$EarnedStickerRowsTable, EarnedStickerRow>(table),
+                  BaseReferences<
+                    _$ProgressDatabase,
+                    $EarnedStickerRowsTable,
+                    EarnedStickerRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EarnedStickerRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDatabase,
+      $EarnedStickerRowsTable,
+      EarnedStickerRow,
+      $$EarnedStickerRowsTableFilterComposer,
+      $$EarnedStickerRowsTableOrderingComposer,
+      $$EarnedStickerRowsTableAnnotationComposer,
+      $$EarnedStickerRowsTableCreateCompanionBuilder,
+      $$EarnedStickerRowsTableUpdateCompanionBuilder,
+      (
+        EarnedStickerRow,
+        BaseReferences<
+          _$ProgressDatabase,
+          $EarnedStickerRowsTable,
+          EarnedStickerRow
+        >,
+      ),
+      EarnedStickerRow,
+      PrefetchHooks Function()
+    >;
+typedef $$SettingsRowsTableCreateCompanionBuilder =
+    SettingsRowsCompanion Function({Value<int> id, Value<String> intensity});
+typedef $$SettingsRowsTableUpdateCompanionBuilder =
+    SettingsRowsCompanion Function({Value<int> id, Value<String> intensity});
+
+class $$SettingsRowsTableFilterComposer
+    extends Composer<_$ProgressDatabase, $SettingsRowsTable> {
+  $$SettingsRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get intensity => $composableBuilder(
+    column: $table.intensity,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SettingsRowsTableOrderingComposer
+    extends Composer<_$ProgressDatabase, $SettingsRowsTable> {
+  $$SettingsRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get intensity => $composableBuilder(
+    column: $table.intensity,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SettingsRowsTableAnnotationComposer
+    extends Composer<_$ProgressDatabase, $SettingsRowsTable> {
+  $$SettingsRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get intensity =>
+      $composableBuilder(column: $table.intensity, builder: (column) => column);
+}
+
+class $$SettingsRowsTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDatabase,
+          $SettingsRowsTable,
+          SettingsRow,
+          $$SettingsRowsTableFilterComposer,
+          $$SettingsRowsTableOrderingComposer,
+          $$SettingsRowsTableAnnotationComposer,
+          $$SettingsRowsTableCreateCompanionBuilder,
+          $$SettingsRowsTableUpdateCompanionBuilder,
+          (
+            SettingsRow,
+            BaseReferences<_$ProgressDatabase, $SettingsRowsTable, SettingsRow>,
+          ),
+          SettingsRow,
+          PrefetchHooks Function()
+        > {
+  $$SettingsRowsTableTableManager(
+    _$ProgressDatabase db,
+    $SettingsRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SettingsRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SettingsRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SettingsRowsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> intensity = const Value.absent(),
+          }) => SettingsRowsCompanion(id: id, intensity: intensity),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> intensity = const Value.absent(),
+          }) => SettingsRowsCompanion.insert(id: id, intensity: intensity),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SettingsRowsTable, SettingsRow>(table),
+                  BaseReferences<
+                    _$ProgressDatabase,
+                    $SettingsRowsTable,
+                    SettingsRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SettingsRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDatabase,
+      $SettingsRowsTable,
+      SettingsRow,
+      $$SettingsRowsTableFilterComposer,
+      $$SettingsRowsTableOrderingComposer,
+      $$SettingsRowsTableAnnotationComposer,
+      $$SettingsRowsTableCreateCompanionBuilder,
+      $$SettingsRowsTableUpdateCompanionBuilder,
+      (
+        SettingsRow,
+        BaseReferences<_$ProgressDatabase, $SettingsRowsTable, SettingsRow>,
+      ),
+      SettingsRow,
+      PrefetchHooks Function()
+    >;
 
 class $ProgressDatabaseManager {
   final _$ProgressDatabase _db;
@@ -1169,4 +1927,8 @@ class $ProgressDatabaseManager {
       $$ItemProgressRowsTableTableManager(_db, _db.itemProgressRows);
   $$CorrectFirstTryDaysTableTableManager get correctFirstTryDays =>
       $$CorrectFirstTryDaysTableTableManager(_db, _db.correctFirstTryDays);
+  $$EarnedStickerRowsTableTableManager get earnedStickerRows =>
+      $$EarnedStickerRowsTableTableManager(_db, _db.earnedStickerRows);
+  $$SettingsRowsTableTableManager get settingsRows =>
+      $$SettingsRowsTableTableManager(_db, _db.settingsRows);
 }

@@ -4,6 +4,7 @@
 // ignore_for_file: prefer_initializing_formals
 import 'package:drift/drift.dart';
 
+import '../rewards/intensity_level.dart';
 import 'item_progress_snapshot.dart';
 import 'item_state.dart';
 import 'progress_database.dart';
@@ -113,6 +114,45 @@ class DriftProgressRepository implements ProgressRepository {
       _db.itemProgressRows,
     )..where((t) => t.itemId.isIn(itemIds))).get();
     return {for (final row in rows) row.itemId: row.state};
+  }
+
+  @override
+  Future<void> recordStickerEarned(String stickerId, DateTime earnedAt) {
+    return _db
+        .into(_db.earnedStickerRows)
+        .insert(
+          EarnedStickerRowsCompanion.insert(
+            stickerId: stickerId,
+            earnedAt: earnedAt,
+          ),
+        );
+  }
+
+  @override
+  Future<Set<String>> earnedStickerIds() async {
+    final rows = await _db.select(_db.earnedStickerRows).get();
+    return rows.map((r) => r.stickerId).toSet();
+  }
+
+  @override
+  Future<IntensityLevel> intensity() async {
+    final row = await (_db.select(
+      _db.settingsRows,
+    )..where((t) => t.id.equals(0))).getSingleOrNull();
+    if (row == null) return IntensityLevel.normal;
+    return IntensityLevel.values.firstWhere(
+      (level) => level.name == row.intensity,
+      orElse: () => IntensityLevel.normal,
+    );
+  }
+
+  @override
+  Future<void> setIntensity(IntensityLevel level) {
+    return _db
+        .into(_db.settingsRows)
+        .insertOnConflictUpdate(
+          SettingsRowsCompanion.insert(id: const Value(0), intensity: Value(level.name)),
+        );
   }
 
   @override

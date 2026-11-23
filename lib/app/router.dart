@@ -4,7 +4,9 @@ import '../features/alphabet/alphabet_game_screen.dart';
 import '../features/daily_path/daily_path_screen.dart';
 import '../features/debug/progress_debug_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/rewards/bravo_result.dart';
 import '../features/rewards/bravo_screen.dart';
+import '../features/rewards/sticker_album_screen.dart';
 import '../features/world_select/world_select_screen.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -23,7 +25,15 @@ final GoRouter appRouter = GoRouter(
       path: '/game',
       builder: (context, state) => const AlphabetGameScreen(),
     ),
-    GoRoute(path: '/bravo', builder: (context, state) => const BravoScreen()),
+    GoRoute(
+      path: '/bravo',
+      builder: (context, state) =>
+          BravoScreen(result: state.extra as BravoResult?),
+    ),
+    GoRoute(
+      path: '/album',
+      builder: (context, state) => const StickerAlbumScreen(),
+    ),
     GoRoute(
       path: '/debug/progress',
       builder: (context, state) => const ProgressDebugScreen(),

@@ -31,8 +31,9 @@ class ChoiceCard extends StatefulWidget {
 }
 
 class _ChoiceCardState extends State<ChoiceCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _shakeController;
+  late final AnimationController _pulseController;
 
   @override
   void initState() {
@@ -41,8 +42,15 @@ class _ChoiceCardState extends State<ChoiceCard>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
     if (widget.state == ChoiceCardState.incorrect) {
       _shakeController.forward();
+    }
+    if (widget.state == ChoiceCardState.correct) {
+      _pulseController.forward();
     }
   }
 
@@ -53,11 +61,16 @@ class _ChoiceCardState extends State<ChoiceCard>
         oldWidget.state != ChoiceCardState.incorrect) {
       _shakeController.forward(from: 0);
     }
+    if (widget.state == ChoiceCardState.correct &&
+        oldWidget.state != ChoiceCardState.correct) {
+      _pulseController.forward(from: 0);
+    }
   }
 
   @override
   void dispose() {
     _shakeController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -76,11 +89,16 @@ class _ChoiceCardState extends State<ChoiceCard>
     final isHintedNormal = widget.isHinted && widget.state == ChoiceCardState.normal;
 
     return AnimatedBuilder(
-      animation: _shakeController,
+      animation: Listenable.merge([_shakeController, _pulseController]),
       builder: (context, child) {
-        final progress = _shakeController.value;
-        final offset = sin(progress * pi * 6) * (1 - progress) * 8;
-        return Transform.translate(offset: Offset(offset, 0), child: child);
+        final shakeProgress = _shakeController.value;
+        final offset = sin(shakeProgress * pi * 6) * (1 - shakeProgress) * 8;
+        final pulseProgress = _pulseController.value;
+        final scale = 1 + sin(pulseProgress * pi) * 0.12;
+        return Transform.translate(
+          offset: Offset(offset, 0),
+          child: Transform.scale(scale: scale, child: child),
+        );
       },
       child: Material(
         color: background,
