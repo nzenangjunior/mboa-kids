@@ -1,9 +1,4 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import 'item_state.dart';
 
@@ -35,18 +30,15 @@ class CorrectFirstTryDays extends Table {
   Set<Column> get primaryKey => {itemId, day};
 }
 
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'progress.sqlite'));
-    return NativeDatabase.createInBackground(file);
-  });
-}
-
+/// This schema has no platform-specific connection logic of its own: how to
+/// actually open it (native SQLite file on Android/desktop, or SQLite
+/// compiled to WebAssembly on the web dev preview) lives in
+/// `progress_repository_io.dart` / `progress_repository_web.dart`, so that
+/// this file never pulls in `dart:io` or `dart:ffi` and stays safe to
+/// import from web-compiled code.
 @DriftDatabase(tables: [ItemProgressRows, CorrectFirstTryDays])
 class ProgressDatabase extends _$ProgressDatabase {
-  ProgressDatabase() : super(_openConnection());
-  ProgressDatabase.forTesting(super.executor);
+  ProgressDatabase(super.executor);
 
   @override
   int get schemaVersion => 1;

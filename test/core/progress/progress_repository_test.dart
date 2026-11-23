@@ -10,7 +10,7 @@ void main() {
   late ProgressRepository repository;
 
   setUp(() {
-    db = ProgressDatabase.forTesting(NativeDatabase.memory());
+    db = ProgressDatabase(NativeDatabase.memory());
     repository = DriftProgressRepository(db);
   });
 

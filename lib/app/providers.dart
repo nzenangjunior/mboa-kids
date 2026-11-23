@@ -7,7 +7,6 @@ import '../core/audio/clip_audio_service.dart';
 import '../core/audio/clip_player.dart';
 import '../core/audio/speech_engine.dart';
 import '../core/audio/tts_fallback_audio_service.dart';
-import '../core/content/alphabet_round.dart';
 import '../core/content/content_loader.dart';
 import '../core/content/models/alphabet_item.dart';
 import '../core/progress/progress_repository.dart';
@@ -24,22 +23,29 @@ final contentLoaderProvider = Provider<ContentLoader>(
   (ref) => ContentLoader(rootBundle),
 );
 
-final alphabetRoundBuilderProvider = Provider<AlphabetRoundBuilder>(
-  (ref) => AlphabetRoundBuilder(),
-);
-
 const progressionEngine = ProgressionEngine();
 
 /// One progression repository for the whole app: item ids already encode
 /// their world (e.g. `en.letter.F`), so there is nothing to separate by
-/// world here. Resolves to a real SQLite-backed repository everywhere
-/// except the web dev preview, which gets a pure-Dart in-memory one
-/// (CLAUDE.md targets Android only; drift's native backend needs
-/// `dart:ffi`, unavailable in a browser).
+/// world here. Always real SQLite via drift: a native file on
+/// Android/desktop, sqlite3 compiled to WebAssembly on the web dev preview
+/// (CLAUDE.md targets Android only; the web path exists purely so progress
+/// survives while there is no tablet at hand).
 final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
   final repository = createDefaultProgressRepository();
   ref.onDispose(repository.dispose);
   return repository;
+});
+
+/// How many days to add to [DateTime.now] when recording an answer. The
+/// progression engine itself never calls [DateTime.now] — every caller
+/// passes "today" in explicitly — so the debug panel's "Simuler +1 jour"
+/// button can fast-forward the whole app by bumping this.
+final simulatedDayOffsetProvider = StateProvider<int>((ref) => 0);
+
+final engineClockProvider = Provider<DateTime Function()>((ref) {
+  final offsetDays = ref.watch(simulatedDayOffsetProvider);
+  return () => DateTime.now().add(Duration(days: offsetDays));
 });
 
 final alphabetContentProvider = FutureProvider.family<AlphabetContent, String>(

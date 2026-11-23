@@ -78,7 +78,7 @@ Widget _buildTestApp({ProgressRepository? progressRepository}) {
       audioServiceProvider('fr').overrideWith((ref) async => _FakeAudioService()),
       progressRepositoryProvider.overrideWithValue(
         progressRepository ??
-            DriftProgressRepository(ProgressDatabase.forTesting(NativeDatabase.memory())),
+            DriftProgressRepository(ProgressDatabase(NativeDatabase.memory())),
       ),
     ],
     child: MaterialApp.router(
@@ -106,7 +106,7 @@ void main() {
     expect(find.byType(ChoiceCard), findsNWidgets(3));
   });
 
-  testWidgets('tapping a choice reveals exactly one correct answer and a Continuer button', (
+  testWidgets('tapping a choice reveals exactly one correct answer, with no Continuer button', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
@@ -115,7 +115,7 @@ void main() {
     await tester.tap(find.byType(ChoiceCard).first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Continuer'), findsOneWidget);
+    expect(find.text('Continuer'), findsNothing);
 
     final cards = tester.widgetList<ChoiceCard>(find.byType(ChoiceCard));
     final correctCount = cards
@@ -124,16 +124,50 @@ void main() {
     expect(correctCount, 1);
   });
 
-  testWidgets('playing through all 5 rounds navigates to the next screen', (
+  testWidgets('a wrong answer brings back the exact same question', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
     await tester.pumpAndSettle();
 
-    for (var round = 0; round < 5; round++) {
-      await tester.tap(find.byType(ChoiceCard).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continuer'));
+    final before = tester
+        .widgetList<ChoiceCard>(find.byType(ChoiceCard))
+        .map((c) => c.label)
+        .toSet();
+
+    await tester.tap(find.byType(ChoiceCard).first);
+    await tester.pumpAndSettle();
+
+    final tappedWasWrong = tester
+        .widgetList<ChoiceCard>(find.byType(ChoiceCard))
+        .any((c) => c.state == ChoiceCardState.incorrect);
+    if (!tappedWasWrong) {
+      // Tapped the correct choice by chance; nothing to retry here.
+      return;
+    }
+
+    await tester.pump(const Duration(milliseconds: 1700));
+    await tester.pumpAndSettle();
+
+    final after = tester
+        .widgetList<ChoiceCard>(find.byType(ChoiceCard))
+        .map((c) => c.label)
+        .toSet();
+    expect(after, before);
+  });
+
+  testWidgets('playing through the whole game navigates to the next screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(_buildTestApp());
+    await tester.pumpAndSettle();
+
+    for (var attempt = 0; attempt < 40; attempt++) {
+      if (find.text('BRAVO_MARKER').evaluate().isNotEmpty) break;
+      final cards = find.byType(ChoiceCard);
+      final count = tester.widgetList<ChoiceCard>(cards).length;
+      await tester.tap(cards.at(attempt % count));
+      await tester.pump(const Duration(milliseconds: 1700));
       await tester.pumpAndSettle();
     }
 
@@ -143,7 +177,7 @@ void main() {
   testWidgets('answering a question records the result in the progress repository', (
     WidgetTester tester,
   ) async {
-    final db = ProgressDatabase.forTesting(NativeDatabase.memory());
+    final db = ProgressDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     final repository = DriftProgressRepository(db);
 
@@ -174,7 +208,7 @@ void main() {
   testWidgets('mode aidé shows 2 choices with the correct one hinted', (
     WidgetTester tester,
   ) async {
-    final db = ProgressDatabase.forTesting(NativeDatabase.memory());
+    final db = ProgressDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     final repository = DriftProgressRepository(db);
 
