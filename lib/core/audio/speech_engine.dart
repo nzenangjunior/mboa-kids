@@ -14,10 +14,12 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
   final FlutterTts _tts;
   String? _currentLocale;
   bool _voicesChecked = false;
+  bool _awaitCompletionSet = false;
 
   @override
   Future<void> speak(String text, {required String locale}) async {
     await _ensureVoicesLoaded();
+    await _ensureAwaitsCompletion();
 
     if (_currentLocale != locale) {
       final available = await _tts.isLanguageAvailable(locale);
@@ -31,6 +33,20 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
       _currentLocale = locale;
     }
     await _tts.speak(text);
+  }
+
+  /// flutter_tts reuses a single native utterance object instead of
+  /// creating one per call. Without this, `speak()` returns before the
+  /// utterance actually finishes, so back-to-back calls (prompt, then the
+  /// letter) overwrite its text while the browser is still dispatching
+  /// word-boundary events for the previous one — those then read a
+  /// `charIndex` that is out of range for the new (often much shorter)
+  /// text and throw a `RangeError` from inside flutter_tts's web plugin.
+  /// Waiting for completion serializes our calls and avoids that race.
+  Future<void> _ensureAwaitsCompletion() async {
+    if (_awaitCompletionSet) return;
+    _awaitCompletionSet = true;
+    await _tts.awaitSpeakCompletion(true);
   }
 
   /// Browsers load the `speechSynthesis` voice list asynchronously; the

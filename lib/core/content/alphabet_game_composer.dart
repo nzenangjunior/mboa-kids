@@ -5,6 +5,40 @@ import '../progress/pack_unlocker.dart';
 import 'alphabet_round.dart';
 import 'models/alphabet_item.dart';
 
+/// English start set (CLAUDE.md section 7): A-E begin directly in
+/// `aRevoir`, as already-known review material, rather than going
+/// through the normal pack-unlocking path. French doesn't have its
+/// discovery game implemented yet (deferred to étape 10), so for now it
+/// starts with nothing pre-known. Shared by the game screen and the debug
+/// panel so both agree on what "unlocked" means.
+Set<String> startUnlockedAlphabetItemIds(String world, List<AlphabetItem> items) {
+  if (world != 'en') return const {};
+  const startGlyphs = {'A', 'B', 'C', 'D', 'E'};
+  return items
+      .where((i) => startGlyphs.contains(i.glyph))
+      .map((i) => i.id)
+      .toSet();
+}
+
+/// 1-based pack number for [itemId] among the items not already in
+/// [startUnlockedItemIds], grouped by [packSize] (CLAUDE.md section 7:
+/// "Nouveaux items par paquets de 3"). Returns null for a start item,
+/// which isn't part of the pack sequence at all.
+int? packNumberFor(
+  String itemId, {
+  required List<String> orderedItemIds,
+  required Set<String> startUnlockedItemIds,
+  required int packSize,
+}) {
+  if (startUnlockedItemIds.contains(itemId)) return null;
+  final newIds = orderedItemIds
+      .where((id) => !startUnlockedItemIds.contains(id))
+      .toList();
+  final index = newIds.indexOf(itemId);
+  if (index == -1) return null;
+  return (index ~/ packSize) + 1;
+}
+
 /// Builds a full alphabet game from the real progression state
 /// (CLAUDE.md section 7): only already-unlocked letters are ever shown,
 /// the first question is a review, the rest mixes roughly 2 known letters

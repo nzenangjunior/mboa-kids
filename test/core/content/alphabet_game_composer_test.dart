@@ -140,4 +140,61 @@ void main() {
     expect(round.choices.map((c) => c.id), contains(target.id));
     expect(round.choices, hasLength(3));
   });
+
+  group('startUnlockedAlphabetItemIds', () {
+    test('is A-E for English', () {
+      expect(
+        startUnlockedAlphabetItemIds('en', alphabet),
+        {'en.letter.A', 'en.letter.B', 'en.letter.C', 'en.letter.D', 'en.letter.E'},
+      );
+    });
+
+    test('is empty for French (discovery game not implemented yet)', () {
+      expect(startUnlockedAlphabetItemIds('fr', alphabet), isEmpty);
+    });
+  });
+
+  group('packNumberFor', () {
+    final orderedIds = alphabet.map((i) => i.id).toList();
+
+    test('is null for a start item', () {
+      expect(
+        packNumberFor(
+          'en.letter.A',
+          orderedItemIds: orderedIds,
+          startUnlockedItemIds: startIds,
+          packSize: 3,
+        ),
+        isNull,
+      );
+    });
+
+    test('numbers the first pack of new items 1', () {
+      for (final id in ['en.letter.F', 'en.letter.G', 'en.letter.H']) {
+        expect(
+          packNumberFor(
+            id,
+            orderedItemIds: orderedIds,
+            startUnlockedItemIds: startIds,
+            packSize: 3,
+          ),
+          1,
+        );
+      }
+    });
+
+    test('numbers the second pack of new items 2', () {
+      for (final id in ['en.letter.I', 'en.letter.J', 'en.letter.K']) {
+        expect(
+          packNumberFor(
+            id,
+            orderedItemIds: orderedIds,
+            startUnlockedItemIds: startIds,
+            packSize: 3,
+          ),
+          2,
+        );
+      }
+    });
+  });
 }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../core/audio/audio_service.dart';
 import '../../core/content/alphabet_game_composer.dart';
 import '../../core/content/alphabet_round.dart';
 import '../../core/content/models/alphabet_item.dart';
@@ -16,13 +17,8 @@ import '../../shared/widgets/mascot_tap_target.dart';
 
 enum _AnswerState { waiting, correct, incorrect }
 
-/// English start set (CLAUDE.md section 7): A-E begin directly in
-/// `aRevoir`, as already-known review material, rather than going
-/// through the normal pack-unlocking path.
-const _englishStartGlyphs = ['A', 'B', 'C', 'D', 'E'];
-
 const _autoAdvanceDelay = Duration(milliseconds: 1500);
-const _retryDelay = Duration(milliseconds: 1200);
+const _wrongAnswerHighlightDuration = Duration(seconds: 1);
 
 /// "Écoute et touche la lettre": the first real game (CLAUDE.md section
 /// 10, step 3). The mascot speaks the target letter, the child taps one
@@ -134,9 +130,7 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
   /// progression state, and builds the game from it (CLAUDE.md section 7).
   Future<void> _startGame(String world, AlphabetContent alphabet) async {
     final repository = ref.read(progressRepositoryProvider);
-    final startIds = world == 'en'
-        ? _englishStartGlyphs.map((g) => 'en.letter.$g').toSet()
-        : <String>{};
+    final startIds = startUnlockedAlphabetItemIds(world, alphabet.items);
 
     if (startIds.isNotEmpty) {
       final existing = await repository.statesFor(startIds.toList());
@@ -233,12 +227,22 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       if (!_isRetry && !_endOfGameQueue.contains(round.target.id)) {
         _endOfGameQueue.add(round.target.id);
       }
-      await audio.playSfx('soft_error');
-      await audio.playPrompt('find_the_letter');
-      await audio.playItem(round.target.id);
+      // The correct answer glows for a fixed, predictable second; the
+      // instruction replay (which can take longer to actually speak) runs
+      // alongside it rather than gating the retry.
+      unawaited(_playWrongAnswerAudio(audio, round));
       _advanceTimer?.cancel();
-      _advanceTimer = Timer(_retryDelay, () => _retrySameRound(round));
+      _advanceTimer = Timer(
+        _wrongAnswerHighlightDuration,
+        () => _retrySameRound(round),
+      );
     }
+  }
+
+  Future<void> _playWrongAnswerAudio(AudioService audio, AlphabetRound round) async {
+    await audio.playSfx('soft_error');
+    await audio.playPrompt('find_the_letter');
+    await audio.playItem(round.target.id);
   }
 
   void _retrySameRound(AlphabetRound round) {
