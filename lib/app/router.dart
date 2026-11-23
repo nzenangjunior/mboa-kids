@@ -7,6 +7,7 @@ import '../features/home/home_screen.dart';
 import '../features/rewards/bravo_result.dart';
 import '../features/rewards/bravo_screen.dart';
 import '../features/rewards/sticker_album_screen.dart';
+import '../features/tracing/tracing_game_screen.dart';
 import '../features/world_select/world_select_screen.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -33,6 +34,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/album',
       builder: (context, state) => const StickerAlbumScreen(),
+    ),
+    GoRoute(
+      path: '/tracing',
+      builder: (context, state) => const TracingGameScreen(),
     ),
     GoRoute(
       path: '/debug/progress',

@@ -38,6 +38,18 @@ class HomeScreen extends StatelessWidget {
               icon: const Icon(Icons.star, color: MboaKidsTheme.pink),
             ),
           ),
+          // Temporary too: tracing isn't part of the daily path yet (that's
+          // étape 10), so it needs its own way in for now, same as the
+          // album above. Reuses whichever world was last selected.
+          Positioned(
+            top: 16,
+            left: 16,
+            child: IconButton(
+              iconSize: 48,
+              onPressed: () => context.go('/tracing'),
+              icon: const Icon(Icons.edit, color: MboaKidsTheme.purple),
+            ),
+          ),
         ],
       ),
     );

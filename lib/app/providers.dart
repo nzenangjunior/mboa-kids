@@ -15,6 +15,8 @@ import '../core/progress/progress_repository_io.dart'
 import '../core/progress/progression_engine.dart';
 import '../core/rewards/intensity_level.dart';
 import '../core/rewards/sticker_catalog.dart';
+import '../core/tracing/tracing_glyph.dart';
+import '../core/tracing/tracing_loader.dart';
 
 /// The world (fr/en) chosen for the current session. Never changed mid
 /// game: CLAUDE.md section 2.6 says the two worlds are never mixed within
@@ -54,6 +56,22 @@ final alphabetContentProvider = FutureProvider.family<AlphabetContent, String>(
   (ref, world) => ref.read(contentLoaderProvider).loadAlphabet(world),
 );
 
+final tracingLoaderProvider = Provider<TracingLoader>(
+  (ref) => TracingLoader(rootBundle),
+);
+
+/// Key points per glyph (CLAUDE.md section 4), shared by both worlds since
+/// a letter's shape doesn't depend on fr/en.
+final tracingContentProvider = FutureProvider<TracingContent>(
+  (ref) => ref.read(tracingLoaderProvider).loadLetters(),
+);
+
+/// The child's first name, always traceable regardless of progression
+/// (CLAUDE.md section 7). There is no settings screen yet to set this from
+/// (that's étape 9's parent space); hardcoded for now the same way the
+/// debug panel stands in for settings elsewhere in this app.
+final childFirstNameProvider = Provider<String>((ref) => 'Estrella');
+
 final stickerCatalogProvider = Provider<StickerCatalog>(
   (ref) => StickerCatalog(rootBundle),
 );
@@ -70,8 +88,14 @@ final intensityProvider = FutureProvider<IntensityLevel>(
 );
 
 const _promptSpokenText = {
-  'fr': {'find_the_letter': 'Touche la lettre'},
-  'en': {'find_the_letter': 'Touch the letter'},
+  'fr': {
+    'find_the_letter': 'Touche la lettre',
+    'trace_the_letter': 'Trace la lettre',
+  },
+  'en': {
+    'find_the_letter': 'Touch the letter',
+    'trace_the_letter': 'Trace the letter',
+  },
 };
 
 const _praiseSpokenText = {
