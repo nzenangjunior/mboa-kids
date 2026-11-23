@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../core/content/alphabet_game_composer.dart';
 import '../../core/content/models/alphabet_item.dart';
 import '../../core/progress/item_progress_snapshot.dart';
+import '../../core/progress/item_state.dart';
 import '../../core/progress/pack_unlocker.dart';
 import '../../core/progress/progress_repository.dart';
 
@@ -148,7 +149,7 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final packLabel = isStartItem ? 'départ' : (packNumber != null ? 'paquet $packNumber' : '-');
-    final nextDue = snapshot.nextDueAt?.toIso8601String().split('T').first ?? '-';
+    final nextDue = nextDueLabelFor(snapshot);
 
     return ListTile(
       leading: CircleAvatar(
@@ -164,4 +165,21 @@ class _ItemRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// `nextDueAt` is only ever set once an item enters the spaced-repetition
+/// schedule: when it first reaches `acquis` (J+1), or when a review answer
+/// is wrong and it's demoted back to `aRevoir` (rescheduled at J+1 from
+/// the demotion day). An `aRevoir` item that was seeded as already-known
+/// (CLAUDE.md section 7: the English A-E start set) has never entered
+/// that schedule, so it has no date at all — it simply hasn't had its
+/// first review yet, which reads better as "now" than as a blank dash.
+/// An `acquis` item with no date has instead finished every scheduled
+/// review (J+60) and will never be reviewed again.
+String nextDueLabelFor(ItemProgressSnapshot snapshot) {
+  final dueAt = snapshot.nextDueAt;
+  if (dueAt != null) return dueAt.toIso8601String().split('T').first;
+  if (snapshot.state == ItemState.aRevoir) return 'maintenant';
+  if (snapshot.state == ItemState.acquis) return 'terminé';
+  return '-';
 }
