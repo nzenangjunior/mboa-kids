@@ -986,8 +986,19 @@ class $SettingsRowsTable extends SettingsRows
     requiredDuringInsert: false,
     defaultValue: const Constant('normal'),
   );
+  static const VerificationMeta _tracingQueueCursorMeta =
+      const VerificationMeta('tracingQueueCursor');
   @override
-  List<GeneratedColumn> get $columns => [id, intensity];
+  late final GeneratedColumn<String> tracingQueueCursor =
+      GeneratedColumn<String>(
+        'tracing_queue_cursor',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [id, intensity, tracingQueueCursor];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1009,6 +1020,15 @@ class $SettingsRowsTable extends SettingsRows
         intensity.isAcceptableOrUnknown(data['intensity']!, _intensityMeta),
       );
     }
+    if (data.containsKey('tracing_queue_cursor')) {
+      context.handle(
+        _tracingQueueCursorMeta,
+        tracingQueueCursor.isAcceptableOrUnknown(
+          data['tracing_queue_cursor']!,
+          _tracingQueueCursorMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1026,6 +1046,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}intensity'],
       )!,
+      tracingQueueCursor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tracing_queue_cursor'],
+      ),
     );
   }
 
@@ -1038,17 +1062,38 @@ class $SettingsRowsTable extends SettingsRows
 class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final int id;
   final String intensity;
-  const SettingsRow({required this.id, required this.intensity});
+
+  /// Opaque cursor (an "id#occurrence" key, see `tracing_queue.dart`) for
+  /// the last tracing queue item completed, across all sessions (CLAUDE.md
+  /// section 10: at most 5 traces per session, resuming where it left off
+  /// rather than restarting from the first name every time). An occurrence
+  /// number is needed, not just the id, because a repeated letter in the
+  /// name (e.g. the two E's in ESTRELLA) would otherwise be ambiguous.
+  final String? tracingQueueCursor;
+  const SettingsRow({
+    required this.id,
+    required this.intensity,
+    this.tracingQueueCursor,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['intensity'] = Variable<String>(intensity);
+    if (!nullToAbsent || tracingQueueCursor != null) {
+      map['tracing_queue_cursor'] = Variable<String>(tracingQueueCursor);
+    }
     return map;
   }
 
   SettingsRowsCompanion toCompanion(bool nullToAbsent) {
-    return SettingsRowsCompanion(id: Value(id), intensity: Value(intensity));
+    return SettingsRowsCompanion(
+      id: Value(id),
+      intensity: Value(intensity),
+      tracingQueueCursor: tracingQueueCursor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tracingQueueCursor),
+    );
   }
 
   factory SettingsRow.fromJson(
@@ -1059,6 +1104,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return SettingsRow(
       id: serializer.fromJson<int>(json['id']),
       intensity: serializer.fromJson<String>(json['intensity']),
+      tracingQueueCursor: serializer.fromJson<String?>(
+        json['tracingQueueCursor'],
+      ),
     );
   }
   @override
@@ -1067,15 +1115,28 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'intensity': serializer.toJson<String>(intensity),
+      'tracingQueueCursor': serializer.toJson<String?>(tracingQueueCursor),
     };
   }
 
-  SettingsRow copyWith({int? id, String? intensity}) =>
-      SettingsRow(id: id ?? this.id, intensity: intensity ?? this.intensity);
+  SettingsRow copyWith({
+    int? id,
+    String? intensity,
+    Value<String?> tracingQueueCursor = const Value.absent(),
+  }) => SettingsRow(
+    id: id ?? this.id,
+    intensity: intensity ?? this.intensity,
+    tracingQueueCursor: tracingQueueCursor.present
+        ? tracingQueueCursor.value
+        : this.tracingQueueCursor,
+  );
   SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
     return SettingsRow(
       id: data.id.present ? data.id.value : this.id,
       intensity: data.intensity.present ? data.intensity.value : this.intensity,
+      tracingQueueCursor: data.tracingQueueCursor.present
+          ? data.tracingQueueCursor.value
+          : this.tracingQueueCursor,
     );
   }
 
@@ -1083,46 +1144,59 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   String toString() {
     return (StringBuffer('SettingsRow(')
           ..write('id: $id, ')
-          ..write('intensity: $intensity')
+          ..write('intensity: $intensity, ')
+          ..write('tracingQueueCursor: $tracingQueueCursor')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, intensity);
+  int get hashCode => Object.hash(id, intensity, tracingQueueCursor);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SettingsRow &&
           other.id == this.id &&
-          other.intensity == this.intensity);
+          other.intensity == this.intensity &&
+          other.tracingQueueCursor == this.tracingQueueCursor);
 }
 
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<int> id;
   final Value<String> intensity;
+  final Value<String?> tracingQueueCursor;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
+    this.tracingQueueCursor = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
+    this.tracingQueueCursor = const Value.absent(),
   });
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
     Expression<String>? intensity,
+    Expression<String>? tracingQueueCursor,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (intensity != null) 'intensity': intensity,
+      if (tracingQueueCursor != null)
+        'tracing_queue_cursor': tracingQueueCursor,
     });
   }
 
-  SettingsRowsCompanion copyWith({Value<int>? id, Value<String>? intensity}) {
+  SettingsRowsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? intensity,
+    Value<String?>? tracingQueueCursor,
+  }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
       intensity: intensity ?? this.intensity,
+      tracingQueueCursor: tracingQueueCursor ?? this.tracingQueueCursor,
     );
   }
 
@@ -1135,6 +1209,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     if (intensity.present) {
       map['intensity'] = Variable<String>(intensity.value);
     }
+    if (tracingQueueCursor.present) {
+      map['tracing_queue_cursor'] = Variable<String>(tracingQueueCursor.value);
+    }
     return map;
   }
 
@@ -1142,7 +1219,229 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   String toString() {
     return (StringBuffer('SettingsRowsCompanion(')
           ..write('id: $id, ')
-          ..write('intensity: $intensity')
+          ..write('intensity: $intensity, ')
+          ..write('tracingQueueCursor: $tracingQueueCursor')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TracingGuidedSuccessDaysTable extends TracingGuidedSuccessDays
+    with TableInfo<$TracingGuidedSuccessDaysTable, TracingGuidedSuccessDay> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TracingGuidedSuccessDaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<String> itemId = GeneratedColumn<String>(
+    'item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<DateTime> day = GeneratedColumn<DateTime>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [itemId, day];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tracing_guided_success_days';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TracingGuidedSuccessDay> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {itemId, day};
+  @override
+  TracingGuidedSuccessDay map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TracingGuidedSuccessDay(
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_id'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}day'],
+      )!,
+    );
+  }
+
+  @override
+  $TracingGuidedSuccessDaysTable createAlias(String alias) {
+    return $TracingGuidedSuccessDaysTable(attachedDatabase, alias);
+  }
+}
+
+class TracingGuidedSuccessDay extends DataClass
+    implements Insertable<TracingGuidedSuccessDay> {
+  final String itemId;
+  final DateTime day;
+  const TracingGuidedSuccessDay({required this.itemId, required this.day});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['item_id'] = Variable<String>(itemId);
+    map['day'] = Variable<DateTime>(day);
+    return map;
+  }
+
+  TracingGuidedSuccessDaysCompanion toCompanion(bool nullToAbsent) {
+    return TracingGuidedSuccessDaysCompanion(
+      itemId: Value(itemId),
+      day: Value(day),
+    );
+  }
+
+  factory TracingGuidedSuccessDay.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TracingGuidedSuccessDay(
+      itemId: serializer.fromJson<String>(json['itemId']),
+      day: serializer.fromJson<DateTime>(json['day']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'itemId': serializer.toJson<String>(itemId),
+      'day': serializer.toJson<DateTime>(day),
+    };
+  }
+
+  TracingGuidedSuccessDay copyWith({String? itemId, DateTime? day}) =>
+      TracingGuidedSuccessDay(
+        itemId: itemId ?? this.itemId,
+        day: day ?? this.day,
+      );
+  TracingGuidedSuccessDay copyWithCompanion(
+    TracingGuidedSuccessDaysCompanion data,
+  ) {
+    return TracingGuidedSuccessDay(
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      day: data.day.present ? data.day.value : this.day,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TracingGuidedSuccessDay(')
+          ..write('itemId: $itemId, ')
+          ..write('day: $day')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(itemId, day);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TracingGuidedSuccessDay &&
+          other.itemId == this.itemId &&
+          other.day == this.day);
+}
+
+class TracingGuidedSuccessDaysCompanion
+    extends UpdateCompanion<TracingGuidedSuccessDay> {
+  final Value<String> itemId;
+  final Value<DateTime> day;
+  final Value<int> rowid;
+  const TracingGuidedSuccessDaysCompanion({
+    this.itemId = const Value.absent(),
+    this.day = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TracingGuidedSuccessDaysCompanion.insert({
+    required String itemId,
+    required DateTime day,
+    this.rowid = const Value.absent(),
+  }) : itemId = Value(itemId),
+       day = Value(day);
+  static Insertable<TracingGuidedSuccessDay> custom({
+    Expression<String>? itemId,
+    Expression<DateTime>? day,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (itemId != null) 'item_id': itemId,
+      if (day != null) 'day': day,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TracingGuidedSuccessDaysCompanion copyWith({
+    Value<String>? itemId,
+    Value<DateTime>? day,
+    Value<int>? rowid,
+  }) {
+    return TracingGuidedSuccessDaysCompanion(
+      itemId: itemId ?? this.itemId,
+      day: day ?? this.day,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (itemId.present) {
+      map['item_id'] = Variable<String>(itemId.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<DateTime>(day.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TracingGuidedSuccessDaysCompanion(')
+          ..write('itemId: $itemId, ')
+          ..write('day: $day, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1159,6 +1458,8 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
   late final $EarnedStickerRowsTable earnedStickerRows =
       $EarnedStickerRowsTable(this);
   late final $SettingsRowsTable settingsRows = $SettingsRowsTable(this);
+  late final $TracingGuidedSuccessDaysTable tracingGuidedSuccessDays =
+      $TracingGuidedSuccessDaysTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1168,6 +1469,7 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
     correctFirstTryDays,
     earnedStickerRows,
     settingsRows,
+    tracingGuidedSuccessDays,
   ];
 }
 
@@ -1786,9 +2088,17 @@ typedef $$EarnedStickerRowsTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$SettingsRowsTableCreateCompanionBuilder =
-    SettingsRowsCompanion Function({Value<int> id, Value<String> intensity});
+    SettingsRowsCompanion Function({
+      Value<int> id,
+      Value<String> intensity,
+      Value<String?> tracingQueueCursor,
+    });
 typedef $$SettingsRowsTableUpdateCompanionBuilder =
-    SettingsRowsCompanion Function({Value<int> id, Value<String> intensity});
+    SettingsRowsCompanion Function({
+      Value<int> id,
+      Value<String> intensity,
+      Value<String?> tracingQueueCursor,
+    });
 
 class $$SettingsRowsTableFilterComposer
     extends Composer<_$ProgressDatabase, $SettingsRowsTable> {
@@ -1806,6 +2116,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get intensity => $composableBuilder(
     column: $table.intensity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tracingQueueCursor => $composableBuilder(
+    column: $table.tracingQueueCursor,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1828,6 +2143,11 @@ class $$SettingsRowsTableOrderingComposer
     column: $table.intensity,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get tracingQueueCursor => $composableBuilder(
+    column: $table.tracingQueueCursor,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsRowsTableAnnotationComposer
@@ -1844,6 +2164,11 @@ class $$SettingsRowsTableAnnotationComposer
 
   GeneratedColumn<String> get intensity =>
       $composableBuilder(column: $table.intensity, builder: (column) => column);
+
+  GeneratedColumn<String> get tracingQueueCursor => $composableBuilder(
+    column: $table.tracingQueueCursor,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsRowsTableTableManager
@@ -1877,14 +2202,26 @@ class $$SettingsRowsTableTableManager
               $$SettingsRowsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingsRowsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String> intensity = const Value.absent(),
-          }) => SettingsRowsCompanion(id: id, intensity: intensity),
-          createCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String> intensity = const Value.absent(),
-          }) => SettingsRowsCompanion.insert(id: id, intensity: intensity),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> intensity = const Value.absent(),
+                Value<String?> tracingQueueCursor = const Value.absent(),
+              }) => SettingsRowsCompanion(
+                id: id,
+                intensity: intensity,
+                tracingQueueCursor: tracingQueueCursor,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> intensity = const Value.absent(),
+                Value<String?> tracingQueueCursor = const Value.absent(),
+              }) => SettingsRowsCompanion.insert(
+                id: id,
+                intensity: intensity,
+                tracingQueueCursor: tracingQueueCursor,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
@@ -1919,6 +2256,180 @@ typedef $$SettingsRowsTableProcessedTableManager =
       SettingsRow,
       PrefetchHooks Function()
     >;
+typedef $$TracingGuidedSuccessDaysTableCreateCompanionBuilder =
+    TracingGuidedSuccessDaysCompanion Function({
+      required String itemId,
+      required DateTime day,
+      Value<int> rowid,
+    });
+typedef $$TracingGuidedSuccessDaysTableUpdateCompanionBuilder =
+    TracingGuidedSuccessDaysCompanion Function({
+      Value<String> itemId,
+      Value<DateTime> day,
+      Value<int> rowid,
+    });
+
+class $$TracingGuidedSuccessDaysTableFilterComposer
+    extends Composer<_$ProgressDatabase, $TracingGuidedSuccessDaysTable> {
+  $$TracingGuidedSuccessDaysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TracingGuidedSuccessDaysTableOrderingComposer
+    extends Composer<_$ProgressDatabase, $TracingGuidedSuccessDaysTable> {
+  $$TracingGuidedSuccessDaysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TracingGuidedSuccessDaysTableAnnotationComposer
+    extends Composer<_$ProgressDatabase, $TracingGuidedSuccessDaysTable> {
+  $$TracingGuidedSuccessDaysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get itemId =>
+      $composableBuilder(column: $table.itemId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+}
+
+class $$TracingGuidedSuccessDaysTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDatabase,
+          $TracingGuidedSuccessDaysTable,
+          TracingGuidedSuccessDay,
+          $$TracingGuidedSuccessDaysTableFilterComposer,
+          $$TracingGuidedSuccessDaysTableOrderingComposer,
+          $$TracingGuidedSuccessDaysTableAnnotationComposer,
+          $$TracingGuidedSuccessDaysTableCreateCompanionBuilder,
+          $$TracingGuidedSuccessDaysTableUpdateCompanionBuilder,
+          (
+            TracingGuidedSuccessDay,
+            BaseReferences<
+              _$ProgressDatabase,
+              $TracingGuidedSuccessDaysTable,
+              TracingGuidedSuccessDay
+            >,
+          ),
+          TracingGuidedSuccessDay,
+          PrefetchHooks Function()
+        > {
+  $$TracingGuidedSuccessDaysTableTableManager(
+    _$ProgressDatabase db,
+    $TracingGuidedSuccessDaysTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TracingGuidedSuccessDaysTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$TracingGuidedSuccessDaysTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TracingGuidedSuccessDaysTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> itemId = const Value.absent(),
+                Value<DateTime> day = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TracingGuidedSuccessDaysCompanion(
+                itemId: itemId,
+                day: day,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String itemId,
+                required DateTime day,
+                Value<int> rowid = const Value.absent(),
+              }) => TracingGuidedSuccessDaysCompanion.insert(
+                itemId: itemId,
+                day: day,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $TracingGuidedSuccessDaysTable,
+                    TracingGuidedSuccessDay
+                  >(table),
+                  BaseReferences<
+                    _$ProgressDatabase,
+                    $TracingGuidedSuccessDaysTable,
+                    TracingGuidedSuccessDay
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TracingGuidedSuccessDaysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDatabase,
+      $TracingGuidedSuccessDaysTable,
+      TracingGuidedSuccessDay,
+      $$TracingGuidedSuccessDaysTableFilterComposer,
+      $$TracingGuidedSuccessDaysTableOrderingComposer,
+      $$TracingGuidedSuccessDaysTableAnnotationComposer,
+      $$TracingGuidedSuccessDaysTableCreateCompanionBuilder,
+      $$TracingGuidedSuccessDaysTableUpdateCompanionBuilder,
+      (
+        TracingGuidedSuccessDay,
+        BaseReferences<
+          _$ProgressDatabase,
+          $TracingGuidedSuccessDaysTable,
+          TracingGuidedSuccessDay
+        >,
+      ),
+      TracingGuidedSuccessDay,
+      PrefetchHooks Function()
+    >;
 
 class $ProgressDatabaseManager {
   final _$ProgressDatabase _db;
@@ -1931,4 +2442,9 @@ class $ProgressDatabaseManager {
       $$EarnedStickerRowsTableTableManager(_db, _db.earnedStickerRows);
   $$SettingsRowsTableTableManager get settingsRows =>
       $$SettingsRowsTableTableManager(_db, _db.settingsRows);
+  $$TracingGuidedSuccessDaysTableTableManager get tracingGuidedSuccessDays =>
+      $$TracingGuidedSuccessDaysTableTableManager(
+        _db,
+        _db.tracingGuidedSuccessDays,
+      );
 }

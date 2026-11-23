@@ -141,6 +141,67 @@ void main() {
     });
   });
 
+  group('selectTracingSessionQueue', () {
+    List<TracingQueueItem> items(List<String> ids) =>
+        [for (final id in ids) TracingQueueItem(id: id, glyphKey: id)];
+
+    test('with no cursor, starts from the beginning and caps at 5', () {
+      final queue = items(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+
+      final session = selectTracingSessionQueue(queue);
+
+      expect(session.map((s) => s.item.id), ['A', 'B', 'C', 'D', 'E']);
+    });
+
+    test('resumes right after the cursor', () {
+      final queue = items(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+
+      final session = selectTracingSessionQueue(queue, afterCursor: 'C#1');
+
+      expect(session.map((s) => s.item.id), ['D', 'E', 'F', 'G', 'A']);
+    });
+
+    test(
+      'with fewer eligible items than the session cap, wraps around to '
+      'fill the session but never lists the same item twice',
+      () {
+        final queue = items(['A', 'B', 'C']);
+
+        final session = selectTracingSessionQueue(queue, afterCursor: 'B#1');
+
+        expect(session.map((s) => s.item.id), ['C', 'A', 'B']);
+        expect(session.map((s) => s.item.id).toSet(), hasLength(3));
+      },
+    );
+
+    test('a cursor no longer found in the queue restarts from the beginning', () {
+      final queue = items(['A', 'B', 'C']);
+
+      final session = selectTracingSessionQueue(queue, afterCursor: 'Z#1');
+
+      expect(session.map((s) => s.item.id), ['A', 'B', 'C']);
+    });
+
+    test(
+      'a repeated id (e.g. the two E in ESTRELLA) is disambiguated by occurrence, '
+      'so resuming after the first E does not skip the second',
+      () {
+        final queue = items(['E', 'S', 'T', 'R', 'E', 'L', 'L', 'A']);
+
+        final afterFirstE = selectTracingSessionQueue(queue, afterCursor: 'E#1');
+        expect(afterFirstE.map((s) => s.item.id), ['S', 'T', 'R', 'E', 'L']);
+        expect(afterFirstE[3].occurrenceKey, 'E#2');
+
+        final afterSecondE = selectTracingSessionQueue(queue, afterCursor: 'E#2');
+        expect(afterSecondE.map((s) => s.item.id), ['L', 'L', 'A', 'E', 'S']);
+      },
+    );
+
+    test('an empty queue selects nothing', () {
+      expect(selectTracingSessionQueue(const []), isEmpty);
+    });
+  });
+
   group('buildFullTracingQueue', () {
     const numbers = NumbersContent(
       world: 'fr',

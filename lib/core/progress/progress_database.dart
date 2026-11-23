@@ -46,8 +46,27 @@ class SettingsRows extends Table {
   IntColumn get id => integer()();
   TextColumn get intensity => text().withDefault(const Constant('normal'))();
 
+  /// Opaque cursor (an "id#occurrence" key, see `tracing_queue.dart`) for
+  /// the last tracing queue item completed, across all sessions (CLAUDE.md
+  /// section 10: at most 5 traces per session, resuming where it left off
+  /// rather than restarting from the first name every time). An occurrence
+  /// number is needed, not just the id, because a repeated letter in the
+  /// name (e.g. the two E's in ESTRELLA) would otherwise be ambiguous.
+  TextColumn get tracingQueueCursor => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Days on which an item was successfully traced with the guide
+/// (CLAUDE.md section 10): the "sans guide" pass is only offered once one
+/// of these days is strictly before today, never in the same session.
+class TracingGuidedSuccessDays extends Table {
+  TextColumn get itemId => text()();
+  DateTimeColumn get day => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {itemId, day};
 }
 
 /// This schema has no platform-specific connection logic of its own: how to
@@ -57,11 +76,28 @@ class SettingsRows extends Table {
 /// this file never pulls in `dart:io` or `dart:ffi` and stays safe to
 /// import from web-compiled code.
 @DriftDatabase(
-  tables: [ItemProgressRows, CorrectFirstTryDays, EarnedStickerRows, SettingsRows],
+  tables: [
+    ItemProgressRows,
+    CorrectFirstTryDays,
+    EarnedStickerRows,
+    SettingsRows,
+    TracingGuidedSuccessDays,
+  ],
 )
 class ProgressDatabase extends _$ProgressDatabase {
   ProgressDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(tracingGuidedSuccessDays);
+        await m.addColumn(settingsRows, settingsRows.tracingQueueCursor);
+      }
+    },
+  );
 }

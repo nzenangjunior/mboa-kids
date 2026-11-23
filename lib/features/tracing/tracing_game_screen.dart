@@ -23,21 +23,26 @@ const _minDistanceBetweenPoints = 0.012;
 const _successAdvanceDelay = Duration(milliseconds: 1600);
 const _replayDuration = Duration(milliseconds: 1400);
 
-/// The two passes every letter/number goes through (CLAUDE.md section 10):
-/// first with the dotted guide, then again from memory to reinforce it.
-enum _TracingStage { guided, unguided }
-
 /// Finger-tracing activity (CLAUDE.md section 10, step 6): a dotted guide
 /// with a start dot and a direction arrow per stroke, wide-tolerance
 /// matching so a 4-year-old's finger can succeed, and no punishment for a
 /// miss — a failed attempt just replays the stroke and the child keeps
 /// drawing until it's good enough. Only already-recognized letters are
 /// offered, except the first name, which is always traceable; numbers 1-5
-/// are offered unconditionally for now (no numbers game exists yet to
-/// gate them the same way). Each item is traced once with the guide, then
-/// once more without it; a successful pass is recorded in the shared
-/// per-item progression (the same one the recognition games use) and the
-/// activity ends with stars and a sticker, exactly like the alphabet game.
+/// are offered unconditionally for now (no numbers game exists yet to gate
+/// them the same way).
+///
+/// At most [tracingMaxItemsPerSession] items are traced per session,
+/// resuming after wherever the last session left off rather than
+/// restarting from the first name every time — a name longer than that is
+/// simply spelled out over several sessions.
+///
+/// Each item is shown with the dotted guide the first time; once it has
+/// been successfully traced with the guide on an earlier day (never the
+/// same session), it is offered without the guide instead, from memory.
+/// A successful trace is recorded in the same per-item progression the
+/// recognition games use, and the activity ends with stars and a sticker,
+/// exactly like the alphabet game.
 class TracingGameScreen extends ConsumerStatefulWidget {
   const TracingGameScreen({super.key});
 
@@ -49,14 +54,18 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     with SingleTickerProviderStateMixin {
   final _random = Random();
 
-  List<TracingQueueItem>? _queue;
+  List<TracingSessionItem>? _queue;
   TracingContent? _tracingContent;
   int _index = 0;
   bool _loading = true;
   bool _success = false;
   bool _finished = false;
   bool _replaying = false;
-  _TracingStage _stage = _TracingStage.guided;
+
+  /// Whether the current item shows the dotted guide. Decided once per
+  /// item in [_prepareAndPromptCurrentItem], from whether it was already
+  /// traced successfully with the guide on an earlier day.
+  bool _guided = true;
 
   bool _itemHadFailedAttempt = false;
   DateTime? _itemStartFirstAcquiredAt;
@@ -110,22 +119,24 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     );
     final firstName = ref.read(childFirstNameProvider);
 
-    final queue = buildFullTracingQueue(
+    final fullQueue = buildFullTracingQueue(
       alphabetItems: alphabet.items,
       states: states,
       firstName: firstName,
       numbersContent: numbers,
       hasTracingData: (glyphKey) => tracingContent[glyphKey] != null,
     );
+    final cursor = await repository.tracingQueueCursor();
+    final session = selectTracingSessionQueue(fullQueue, afterCursor: cursor);
 
     if (!mounted) return;
     setState(() {
       _tracingContent = tracingContent;
-      _queue = queue;
+      _queue = session;
       _loading = false;
-      _finished = queue.isEmpty;
+      _finished = session.isEmpty;
     });
-    if (queue.isNotEmpty) {
+    if (session.isNotEmpty) {
       unawaited(_prepareAndPromptCurrentItem());
     }
   }
@@ -137,16 +148,25 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
   }
 
   /// Captures the item's progress snapshot before this attempt (to detect
-  /// a newly-`acquis` item later) and speaks the prompt for it.
+  /// a newly-`acquis` item later), decides whether it shows the guide, and
+  /// speaks the prompt for it.
   Future<void> _prepareAndPromptCurrentItem() async {
-    final item = _queue![_index];
+    final item = _queue![_index].item;
+    var guided = true;
     try {
       final repository = ref.read(progressRepositoryProvider);
       final snapshot = await repository.snapshotFor(item.id);
       _itemStartFirstAcquiredAt = snapshot.firstAcquiredAt;
+      final today = ref.read(engineClockProvider)();
+      final hasEarlierGuidedSuccess = await repository.hasTracingGuidedSuccessBefore(
+        item.id,
+        today,
+      );
+      guided = !hasEarlierGuidedSuccess;
     } catch (_) {
       _itemStartFirstAcquiredAt = null;
     }
+    if (mounted) setState(() => _guided = guided);
     await _playPromptForCurrent();
   }
 
@@ -155,7 +175,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       final world = ref.read(worldProvider);
       final audio = await _audioFor(world);
       await audio.playPrompt('trace_the_letter');
-      await audio.playItem(_queue![_index].id);
+      await audio.playItem(_queue![_index].item.id);
     } catch (_) {
       // A missing or slow clip must never block the activity: the child
       // can still see the guide and trace it without the spoken prompt.
@@ -183,7 +203,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
 
   void _onPanEnd() {
     if (_success || _replaying) return;
-    final glyph = _tracingContent![_queue![_index].glyphKey];
+    final glyph = _tracingContent![_queue![_index].item.glyphKey];
     if (glyph == null) return;
     final allPoints = [for (final stroke in _drawnStrokes) ...stroke];
     final tolerance = ref.read(tracingToleranceProvider);
@@ -195,7 +215,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     setState(() => _success = true);
     unawaited(_playSuccessAudio());
     _advanceTimer?.cancel();
-    _advanceTimer = Timer(_successAdvanceDelay, _onStageSucceeded);
+    _advanceTimer = Timer(_successAdvanceDelay, _onItemSucceeded);
   }
 
   /// A failed attempt is never a punishment (CLAUDE.md rule 5): the guide
@@ -226,38 +246,37 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     }
   }
 
-  void _onStageSucceeded() {
+  void _onItemSucceeded() {
     if (!mounted) return;
-    if (_stage == _TracingStage.guided) {
-      setState(() {
-        _stage = _TracingStage.unguided;
-        _success = false;
-        _drawnStrokes.clear();
-      });
-      unawaited(_playPromptForCurrent());
-      return;
-    }
     unawaited(_recordItemCompleted());
   }
 
-  /// The unguided pass just succeeded: this item is fully done. Recorded
-  /// in the same per-item progression the recognition games use (CLAUDE.md
-  /// section 10: "comme le jeu de l'alphabet").
+  /// The item's single pass just succeeded: recorded in the same per-item
+  /// progression the recognition games use (CLAUDE.md section 10: "comme
+  /// le jeu de l'alphabet"), and — if it was guided — stamped as a guided
+  /// success for today, so it is offered without the guide from the next
+  /// session onward (never the same session).
   Future<void> _recordItemCompleted() async {
-    final item = _queue![_index];
+    final sessionItem = _queue![_index];
+    final item = sessionItem.item;
     final firstTry = !_itemHadFailedAttempt;
     try {
       final repository = ref.read(progressRepositoryProvider);
+      final today = ref.read(engineClockProvider)();
+      if (_guided) {
+        await repository.recordTracingGuidedSuccess(item.id, today);
+      }
       final updated = await repository.recordAnswer(
         itemId: item.id,
         correct: true,
         firstTry: firstTry,
-        today: ref.read(engineClockProvider)(),
+        today: today,
       );
       if (firstTry) _tracedFirstTryCount++;
       if (_itemStartFirstAcquiredAt == null && updated.firstAcquiredAt != null) {
         _newlyAcquiredGlyphs.add(item.glyphKey);
       }
+      await repository.setTracingQueueCursor(sessionItem.occurrenceKey);
     } catch (_) {
       // Recording failing must never block the activity from moving on.
     }
@@ -273,7 +292,6 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     }
     setState(() {
       _index++;
-      _stage = _TracingStage.guided;
       _success = false;
       _itemHadFailedAttempt = false;
       _drawnStrokes.clear();
@@ -335,7 +353,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       return _buildEmptyQueue(context);
     }
 
-    final item = _queue![_index];
+    final item = _queue![_index].item;
     final glyph = _tracingContent![item.glyphKey];
 
     return Scaffold(
@@ -382,7 +400,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
                                         glyph: glyph,
                                         drawnStrokes: _drawnStrokes,
                                         success: _success,
-                                        showGuide: _stage == _TracingStage.guided,
+                                        showGuide: _guided,
                                         replayProgress:
                                             _replaying ? _replayController.value : null,
                                       ),

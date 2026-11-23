@@ -155,6 +155,46 @@ class DriftProgressRepository implements ProgressRepository {
         );
   }
 
+  DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  @override
+  Future<bool> hasTracingGuidedSuccessBefore(String itemId, DateTime day) async {
+    final cutoff = _dateOnly(day);
+    final rows = await (_db.select(_db.tracingGuidedSuccessDays)
+          ..where((t) => t.itemId.equals(itemId) & t.day.isSmallerThanValue(cutoff)))
+        .get();
+    return rows.isNotEmpty;
+  }
+
+  @override
+  Future<void> recordTracingGuidedSuccess(String itemId, DateTime day) {
+    return _db
+        .into(_db.tracingGuidedSuccessDays)
+        .insertOnConflictUpdate(
+          TracingGuidedSuccessDaysCompanion.insert(itemId: itemId, day: _dateOnly(day)),
+        );
+  }
+
+  @override
+  Future<String?> tracingQueueCursor() async {
+    final row = await (_db.select(
+      _db.settingsRows,
+    )..where((t) => t.id.equals(0))).getSingleOrNull();
+    return row?.tracingQueueCursor;
+  }
+
+  @override
+  Future<void> setTracingQueueCursor(String cursor) {
+    return _db
+        .into(_db.settingsRows)
+        .insertOnConflictUpdate(
+          SettingsRowsCompanion.insert(
+            id: const Value(0),
+            tracingQueueCursor: Value(cursor),
+          ),
+        );
+  }
+
   @override
   Future<void> dispose() => _db.close();
 }

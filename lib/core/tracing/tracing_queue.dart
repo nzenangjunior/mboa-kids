@@ -92,3 +92,66 @@ List<TracingQueueItem> buildFullTracingQueue({
       TracingQueueItem(id: item.id, glyphKey: item.value.toString()),
   ];
 }
+
+/// At most this many items are traced per session (CLAUDE.md section 10).
+const tracingMaxItemsPerSession = 5;
+
+/// One item selected for a session, paired with the opaque cursor to
+/// persist once it is completed (see [selectTracingSessionQueue]).
+class TracingSessionItem {
+  const TracingSessionItem({required this.item, required this.occurrenceKey});
+
+  final TracingQueueItem item;
+  final String occurrenceKey;
+}
+
+/// A stable "id#occurrence" key for the item at [index] in [fullQueue].
+/// An occurrence number is needed, not just the id, because a repeated
+/// letter in the name (e.g. the two E's in ESTRELLA) would otherwise be
+/// ambiguous — this disambiguates them while staying stable across
+/// sessions even as later items are added to the queue.
+String _occurrenceKeyAt(List<TracingQueueItem> fullQueue, int index) {
+  final id = fullQueue[index].id;
+  var occurrence = 0;
+  for (var i = 0; i <= index; i++) {
+    if (fullQueue[i].id == id) occurrence++;
+  }
+  return '$id#$occurrence';
+}
+
+/// Selects up to [maxItems] items from [fullQueue] to trace this session
+/// (CLAUDE.md section 10: 5 max, resuming after [afterCursor] instead of
+/// restarting from the first name every time — a longer name than that is
+/// simply split over several sessions). Wraps back to the start once the
+/// end of the queue is reached, but never repeats an item within the same
+/// session.
+List<TracingSessionItem> selectTracingSessionQueue(
+  List<TracingQueueItem> fullQueue, {
+  String? afterCursor,
+  int maxItems = tracingMaxItemsPerSession,
+}) {
+  if (fullQueue.isEmpty) return const [];
+
+  var startIndex = 0;
+  if (afterCursor != null) {
+    for (var i = 0; i < fullQueue.length; i++) {
+      if (_occurrenceKeyAt(fullQueue, i) == afterCursor) {
+        startIndex = (i + 1) % fullQueue.length;
+        break;
+      }
+    }
+  }
+
+  final count = maxItems < fullQueue.length ? maxItems : fullQueue.length;
+  final session = <TracingSessionItem>[];
+  for (var step = 0; step < count; step++) {
+    final index = (startIndex + step) % fullQueue.length;
+    session.add(
+      TracingSessionItem(
+        item: fullQueue[index],
+        occurrenceKey: _occurrenceKeyAt(fullQueue, index),
+      ),
+    );
+  }
+  return session;
+}

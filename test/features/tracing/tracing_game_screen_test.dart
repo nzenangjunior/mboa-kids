@@ -11,6 +11,7 @@ import 'package:mboa_kids/core/audio/audio_service.dart';
 import 'package:mboa_kids/core/content/content_loader.dart';
 import 'package:mboa_kids/core/progress/drift_progress_repository.dart';
 import 'package:mboa_kids/core/progress/progress_database.dart';
+import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/core/rewards/sticker_catalog.dart';
 import 'package:mboa_kids/core/tracing/tracing_glyph.dart';
 import 'package:mboa_kids/features/rewards/bravo_result.dart';
@@ -52,7 +53,7 @@ class _FakeAudioService implements AudioService {
 }
 
 /// Records every item id the screen asks to have spoken, in order — this
-/// is how the test below checks exactly which letters, and in what order
+/// is how the tests below check exactly which letters, and in what order
 /// (repeats included), the activity actually requested.
 class _RecordingAudioService implements AudioService {
   final List<String> playedItemIds = [];
@@ -73,6 +74,23 @@ class _RecordingAudioService implements AudioService {
   Future<void> stop() async {}
 }
 
+String _letterJson(String glyph, {String word = 'mot'}) {
+  final lower = glyph.toLowerCase();
+  return '''
+    { "id": "fr.letter.$glyph", "glyph": "$glyph", "lower": "$lower", "audio": "audio/fr/letters/$lower.ogg",
+      "word": { "label": "$word", "image": "images/vocab/$word.webp", "audio": "audio/fr/words/$word.ogg" } }
+''';
+}
+
+String _alphabetJsonFor(List<String> glyphs) => '''
+{
+  "world": "fr",
+  "module": "alphabet",
+  "packSize": 3,
+  "items": [${glyphs.map(_letterJson).join(',')}]
+}
+''';
+
 const _alphabetJson = '''
 {
   "world": "fr",
@@ -87,29 +105,9 @@ const _alphabetJson = '''
 }
 ''';
 
-/// Covers every letter of "ESTRELLA" so the test below can trace the whole
-/// name, repeats (E and L) included.
-const _estrellaAlphabetJson = '''
-{
-  "world": "fr",
-  "module": "alphabet",
-  "packSize": 3,
-  "items": [
-    { "id": "fr.letter.A", "glyph": "A", "lower": "a", "audio": "audio/fr/letters/a.ogg",
-      "word": { "label": "abeille", "image": "images/vocab/abeille.webp", "audio": "audio/fr/words/abeille.ogg" } },
-    { "id": "fr.letter.E", "glyph": "E", "lower": "e", "audio": "audio/fr/letters/e.ogg",
-      "word": { "label": "etoile", "image": "images/vocab/etoile.webp", "audio": "audio/fr/words/etoile.ogg" } },
-    { "id": "fr.letter.L", "glyph": "L", "lower": "l", "audio": "audio/fr/letters/l.ogg",
-      "word": { "label": "lune", "image": "images/vocab/lune.webp", "audio": "audio/fr/words/lune.ogg" } },
-    { "id": "fr.letter.R", "glyph": "R", "lower": "r", "audio": "audio/fr/letters/r.ogg",
-      "word": { "label": "robot", "image": "images/vocab/robot.webp", "audio": "audio/fr/words/robot.ogg" } },
-    { "id": "fr.letter.S", "glyph": "S", "lower": "s", "audio": "audio/fr/letters/s.ogg",
-      "word": { "label": "soleil", "image": "images/vocab/soleil.webp", "audio": "audio/fr/words/soleil.ogg" } },
-    { "id": "fr.letter.T", "glyph": "T", "lower": "t", "audio": "audio/fr/letters/t.ogg",
-      "word": { "label": "tortue", "image": "images/vocab/tortue.webp", "audio": "audio/fr/words/tortue.ogg" } }
-  ]
-}
-''';
+/// Covers every letter of "ESTRELLA" so a test can trace the whole name,
+/// repeats (E and L) included.
+final _estrellaAlphabetJson = _alphabetJsonFor(['A', 'E', 'L', 'R', 'S', 'T']);
 
 /// Both glyphs are the same simple horizontal line: easy to drag along
 /// precisely in a test, without needing to replicate the real curvy
@@ -139,10 +137,20 @@ Widget _buildTestApp({
   String numbersJson = _noNumbersJson,
   String childFirstName = 'AB',
   Map<String, TracingGlyph>? glyphs,
+  ProgressRepository? repository,
+  int dayOffset = 0,
 }) {
   return ProviderScope(
+    // A fresh key per build: two sequential pumpWidget() calls at the same
+    // widget position would otherwise let Flutter reuse the same
+    // ProviderScope element, which keeps its old container (and anything
+    // already resolved in it, e.g. a FutureProvider's cached value) alive
+    // even though the `overrides` list below changed — exactly the kind
+    // of stale state a test simulating two separate sessions must avoid.
+    key: UniqueKey(),
     overrides: [
       worldProvider.overrideWith((ref) => 'fr'),
+      simulatedDayOffsetProvider.overrideWith((ref) => dayOffset),
       contentLoaderProvider.overrideWithValue(
         ContentLoader(
           _FakeAssetBundle({
@@ -155,7 +163,7 @@ Widget _buildTestApp({
         'fr',
       ).overrideWith((ref) async => audioService ?? _FakeAudioService()),
       progressRepositoryProvider.overrideWithValue(
-        DriftProgressRepository(ProgressDatabase(NativeDatabase.memory())),
+        repository ?? DriftProgressRepository(ProgressDatabase(NativeDatabase.memory())),
       ),
       // Not the real asset: `rootBundle.loadString` for the same path
       // hangs on the 2nd+ call within one test file's process (confirmed
@@ -218,14 +226,19 @@ Finder _findTracingCanvas() {
   );
 }
 
-/// Traces the current item once (CLAUDE.md section 10: every item is
-/// traced twice — once with the guide, once without — before the
-/// activity moves to the next one). [isLast] controls whether this is the
-/// very last successful trace of the whole queue, in which case the
-/// screen goes on to the Bravo screen instead of showing the next guide
-/// (and plays confetti, whose ticker never settles on its own, so a
-/// bounded pump is used instead of pumpAndSettle()).
-Future<void> _traceCurrentStage(WidgetTester tester, {required bool isLastOfActivity}) async {
+TracingCanvasPainter _currentPainter(WidgetTester tester) {
+  final widget = tester.widget<CustomPaint>(_findTracingCanvas());
+  return widget.painter as TracingCanvasPainter;
+}
+
+/// Traces the current item once (one pass now — guided or unguided is
+/// decided per item, not two passes per item, CLAUDE.md section 10).
+/// [isLastOfActivity] controls whether this is the very last successful
+/// trace of the session, in which case the screen goes on to the Bravo
+/// screen instead of showing the next guide (and plays confetti, whose
+/// ticker never settles on its own, so a bounded pump is used instead of
+/// pumpAndSettle()).
+Future<void> _traceCurrentItem(WidgetTester tester, {required bool isLastOfActivity}) async {
   final canvasRect = tester.getRect(_findTracingCanvas());
   await _dragAlong(tester, _lineScreenPoints(canvasRect));
   await tester.pump(const Duration(milliseconds: 1700));
@@ -234,12 +247,6 @@ Future<void> _traceCurrentStage(WidgetTester tester, {required bool isLastOfActi
   } else {
     await tester.pumpAndSettle();
   }
-}
-
-/// Traces one whole queue item: the guided pass, then the unguided pass.
-Future<void> _traceCurrentItem(WidgetTester tester, {required bool isLastOfActivity}) async {
-  await _traceCurrentStage(tester, isLastOfActivity: false);
-  await _traceCurrentStage(tester, isLastOfActivity: isLastOfActivity);
 }
 
 void main() {
@@ -252,45 +259,37 @@ void main() {
     expect(_findTracingCanvas(), findsOneWidget);
   });
 
-  testWidgets(
-    'a good trace must be repeated once guided and once unguided before advancing',
-    (WidgetTester tester) async {
-      final audio = _RecordingAudioService();
-      await tester.pumpWidget(_buildTestApp(audioService: audio));
-      await tester.pumpAndSettle();
+  testWidgets('a good trace advances straight to the next letter (one pass per item)', (
+    WidgetTester tester,
+  ) async {
+    final audio = _RecordingAudioService();
+    await tester.pumpWidget(_buildTestApp(audioService: audio));
+    await tester.pumpAndSettle();
 
-      expect(audio.playedItemIds, ['fr.letter.A']);
+    expect(audio.playedItemIds, ['fr.letter.A']);
+    expect(_currentPainter(tester).showGuide, isTrue);
 
-      // Guided pass succeeds: still on "A" (now unguided), not yet "B".
-      await _traceCurrentStage(tester, isLastOfActivity: false);
-      expect(
-        audio.playedItemIds,
-        ['fr.letter.A', 'fr.letter.A'],
-        reason: 'the prompt for "A" is replayed when moving to the '
-            'unguided pass of the same letter, not advanced to "B" yet',
-      );
-      expect(find.text('Accueil'), findsNothing);
+    await _traceCurrentItem(tester, isLastOfActivity: false);
 
-      // Unguided pass succeeds: now "B" starts.
-      await _traceCurrentStage(tester, isLastOfActivity: false);
-      expect(audio.playedItemIds, ['fr.letter.A', 'fr.letter.A', 'fr.letter.B']);
-      expect(find.text('Accueil'), findsNothing);
-    },
-  );
+    expect(
+      audio.playedItemIds,
+      ['fr.letter.A', 'fr.letter.B'],
+      reason: 'one successful trace is enough to move to the next letter',
+    );
+    expect(find.text('Accueil'), findsNothing);
+  });
 
   testWidgets(
-    'tracing every letter (guided and unguided) finishes the activity and '
-    'reaches the Bravo screen with stars and a sticker',
+    'tracing every letter finishes the activity and reaches the Bravo '
+    'screen with stars and a sticker',
     (WidgetTester tester) async {
       await tester.pumpWidget(_buildTestApp());
       await tester.pumpAndSettle();
 
-      // "A": both passes.
-      await _traceCurrentItem(tester, isLastOfActivity: false);
+      await _traceCurrentItem(tester, isLastOfActivity: false); // "A"
       expect(find.text('Accueil'), findsNothing);
 
-      // "B": both passes — the activity finishes after this.
-      await _traceCurrentItem(tester, isLastOfActivity: true);
+      await _traceCurrentItem(tester, isLastOfActivity: true); // "B"
 
       expect(find.text('Accueil'), findsOneWidget);
       expect(find.byIcon(Icons.star), findsWidgets);
@@ -329,10 +328,129 @@ void main() {
   });
 
   testWidgets(
-    'tracing the full first name requests every letter once per stage per '
-    'occurrence, repeats included — ESTRELLA has E at positions 1 and 5, '
-    'L at 6 and 7',
+    'an item traced with the guide stays guided the rest of the same day, '
+    'even across a new session, and only drops the guide the next day',
     (WidgetTester tester) async {
+      final repository = DriftProgressRepository(ProgressDatabase(NativeDatabase.memory()));
+      final glyphs = {'A': _straightLineGlyph};
+
+      // Day 0, session 1: never traced before, so guided.
+      await tester.pumpWidget(
+        _buildTestApp(
+          alphabetJson: _alphabetJsonFor(['A']),
+          childFirstName: 'A',
+          glyphs: glyphs,
+          repository: repository,
+          dayOffset: 0,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_currentPainter(tester).showGuide, isTrue);
+      await _traceCurrentItem(tester, isLastOfActivity: true);
+
+      // Day 0, session 2 (new screen instance, same repository, same
+      // calendar day): still guided — never in the same session/day.
+      await tester.pumpWidget(
+        _buildTestApp(
+          alphabetJson: _alphabetJsonFor(['A']),
+          childFirstName: 'A',
+          glyphs: glyphs,
+          repository: repository,
+          dayOffset: 0,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        _currentPainter(tester).showGuide,
+        isTrue,
+        reason: 'a guided success earlier today must not unlock "sans guide" today',
+      );
+      await _traceCurrentItem(tester, isLastOfActivity: true);
+
+      // Day 1: the guided success happened on an earlier day, so now it
+      // is offered without the guide.
+      await tester.pumpWidget(
+        _buildTestApp(
+          alphabetJson: _alphabetJsonFor(['A']),
+          childFirstName: 'A',
+          glyphs: glyphs,
+          repository: repository,
+          dayOffset: 1,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        _currentPainter(tester).showGuide,
+        isFalse,
+        reason: 'a guided success on an earlier day unlocks "sans guide" today',
+      );
+    },
+  );
+
+  testWidgets(
+    'at most 5 items are traced per session, and the next session resumes '
+    'right after where this one left off (wrapping past the end)',
+    (WidgetTester tester) async {
+      final repository = DriftProgressRepository(ProgressDatabase(NativeDatabase.memory()));
+      final glyphs = {for (final g in 'ABCDEFG'.split('')) g: _straightLineGlyph};
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          alphabetJson: _alphabetJsonFor('ABCDEFG'.split('')),
+          childFirstName: 'ABCDEFG',
+          glyphs: glyphs,
+          repository: repository,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Session 1: exactly 5 of the 7 eligible letters (A-E), then Bravo.
+      for (var i = 0; i < 5; i++) {
+        await _traceCurrentItem(tester, isLastOfActivity: i == 4);
+      }
+      expect(find.text('Accueil'), findsOneWidget, reason: 'session 1 stops at 5 traces');
+
+      // Session 2 (fresh screen, same repository): resumes at F, G, then
+      // wraps back to the start (A, B, C) — never restarts from A.
+      final audio = _RecordingAudioService();
+      await tester.pumpWidget(
+        _buildTestApp(
+          audioService: audio,
+          alphabetJson: _alphabetJsonFor('ABCDEFG'.split('')),
+          childFirstName: 'ABCDEFG',
+          glyphs: glyphs,
+          repository: repository,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(audio.playedItemIds, ['fr.letter.F']);
+
+      for (var i = 0; i < 5; i++) {
+        await _traceCurrentItem(tester, isLastOfActivity: i == 4);
+      }
+
+      expect(
+        audio.playedItemIds,
+        [
+          'fr.letter.F',
+          'fr.letter.G',
+          'fr.letter.A',
+          'fr.letter.B',
+          'fr.letter.C',
+        ],
+        reason: 'session 2 continues from F, not from A again, and wraps '
+            'once it reaches the end of the 7 eligible letters',
+      );
+      expect(find.text('Accueil'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tracing the name ESTRELLA across sessions requests every letter once '
+    'per occurrence, repeats (E and L) included, with no letter skipped '
+    'or reused between sessions',
+    (WidgetTester tester) async {
+      final repository = DriftProgressRepository(ProgressDatabase(NativeDatabase.memory()));
       final audio = _RecordingAudioService();
       final glyphs = {
         for (final letter in ['A', 'E', 'L', 'R', 'S', 'T']) letter: _straightLineGlyph,
@@ -344,48 +462,49 @@ void main() {
           alphabetJson: _estrellaAlphabetJson,
           childFirstName: 'ESTRELLA',
           glyphs: glyphs,
+          repository: repository,
         ),
       );
       await tester.pumpAndSettle();
 
-      const nameLetterIds = [
-        'fr.letter.E',
-        'fr.letter.S',
-        'fr.letter.T',
-        'fr.letter.R',
-        'fr.letter.E',
-        'fr.letter.L',
-        'fr.letter.L',
-        'fr.letter.A',
-      ];
-      // Each letter is prompted twice (guided, then unguided).
-      final expectedIds = [for (final id in nameLetterIds) ...[id, id]];
-
-      // The very first prompt (before any drag) already proves the queue
-      // starts with the name's first letter.
-      expect(audio.playedItemIds, [expectedIds.first]);
-
-      for (var i = 0; i < nameLetterIds.length; i++) {
-        await _traceCurrentItem(tester, isLastOfActivity: i == nameLetterIds.length - 1);
+      // ESTRELLA is 8 letters, capped at 5 per session: E, S, T, R, E.
+      expect(audio.playedItemIds, ['fr.letter.E']);
+      for (var i = 0; i < 5; i++) {
+        await _traceCurrentItem(tester, isLastOfActivity: i == 4);
       }
-
       expect(
         audio.playedItemIds,
-        expectedIds,
-        reason: 'every letter of the name must be requested once per '
-            'stage per occurrence, in order, with no repeat silently dropped',
+        ['fr.letter.E', 'fr.letter.S', 'fr.letter.T', 'fr.letter.R', 'fr.letter.E'],
       );
       expect(find.text('Accueil'), findsOneWidget);
 
-      expect(
-        audio.playedItemIds.where((id) => id == 'fr.letter.E').length,
-        4,
-        reason: 'E occurs twice in ESTRELLA, each occurrence prompted twice',
+      // Next session resumes right after the *second* E, at L, L, A, then
+      // wraps to E, S — the second E is not skipped nor retraced twice.
+      final audio2 = _RecordingAudioService();
+      await tester.pumpWidget(
+        _buildTestApp(
+          audioService: audio2,
+          alphabetJson: _estrellaAlphabetJson,
+          childFirstName: 'ESTRELLA',
+          glyphs: glyphs,
+          repository: repository,
+        ),
       );
+      await tester.pumpAndSettle();
+      expect(audio2.playedItemIds, ['fr.letter.L']);
+
+      for (var i = 0; i < 5; i++) {
+        await _traceCurrentItem(tester, isLastOfActivity: i == 4);
+      }
       expect(
-        audio.playedItemIds.where((id) => id == 'fr.letter.L').length,
-        4,
-        reason: 'L occurs twice in ESTRELLA, each occurrence prompted twice',
+        audio2.playedItemIds,
+        [
+          'fr.letter.L',
+          'fr.letter.L',
+          'fr.letter.A',
+          'fr.letter.E',
+          'fr.letter.S',
+        ],
       );
     },
   );

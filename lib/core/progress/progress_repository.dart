@@ -41,5 +41,24 @@ abstract class ProgressRepository {
   Future<IntensityLevel> intensity();
   Future<void> setIntensity(IntensityLevel level);
 
+  /// Whether [itemId] was successfully traced with the guide on some day
+  /// strictly before [day] — the condition for offering it without the
+  /// guide (CLAUDE.md section 10: never in the same session it was first
+  /// traced with the guide).
+  Future<bool> hasTracingGuidedSuccessBefore(String itemId, DateTime day);
+
+  /// Records that [itemId] was successfully traced with the guide on
+  /// [day] (CLAUDE.md section 10).
+  Future<void> recordTracingGuidedSuccess(String itemId, DateTime day);
+
+  /// The opaque cursor (see `tracing_queue.dart`'s occurrence keys) for the
+  /// last tracing queue item completed, across all sessions — lets the
+  /// tracing activity resume where it left off instead of restarting from
+  /// the first name every time (CLAUDE.md section 10: at most 5 traces
+  /// per session).
+  Future<String?> tracingQueueCursor();
+
+  Future<void> setTracingQueueCursor(String cursor);
+
   Future<void> dispose();
 }
