@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mboa_kids/core/progress/drift_progress_repository.dart';
 import 'package:mboa_kids/core/progress/item_state.dart';
 import 'package:mboa_kids/core/progress/progress_database.dart';
 import 'package:mboa_kids/core/progress/progress_repository.dart';
@@ -10,7 +11,7 @@ void main() {
 
   setUp(() {
     db = ProgressDatabase.forTesting(NativeDatabase.memory());
-    repository = ProgressRepository(db);
+    repository = DriftProgressRepository(db);
   });
 
   tearDown(() => db.close());

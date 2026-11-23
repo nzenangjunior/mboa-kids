@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:mboa_kids/app/providers.dart';
 import 'package:mboa_kids/core/audio/audio_service.dart';
 import 'package:mboa_kids/core/content/content_loader.dart';
+import 'package:mboa_kids/core/progress/drift_progress_repository.dart';
 import 'package:mboa_kids/core/progress/progress_database.dart';
 import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/features/alphabet/alphabet_game_screen.dart';
@@ -65,7 +66,7 @@ const _alphabetJson = '''
 }
 ''';
 
-Widget _buildTestApp({ProgressDatabase? progressDatabase}) {
+Widget _buildTestApp({ProgressRepository? progressRepository}) {
   return ProviderScope(
     overrides: [
       worldProvider.overrideWith((ref) => 'fr'),
@@ -75,8 +76,9 @@ Widget _buildTestApp({ProgressDatabase? progressDatabase}) {
         ),
       ),
       audioServiceProvider('fr').overrideWith((ref) async => _FakeAudioService()),
-      progressDatabaseProvider.overrideWithValue(
-        progressDatabase ?? ProgressDatabase.forTesting(NativeDatabase.memory()),
+      progressRepositoryProvider.overrideWithValue(
+        progressRepository ??
+            DriftProgressRepository(ProgressDatabase.forTesting(NativeDatabase.memory())),
       ),
     ],
     child: MaterialApp.router(
@@ -143,9 +145,9 @@ void main() {
   ) async {
     final db = ProgressDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    final repository = ProgressRepository(db);
+    final repository = DriftProgressRepository(db);
 
-    await tester.pumpWidget(_buildTestApp(progressDatabase: db));
+    await tester.pumpWidget(_buildTestApp(progressRepository: repository));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(ChoiceCard).first);
@@ -174,7 +176,7 @@ void main() {
   ) async {
     final db = ProgressDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    final repository = ProgressRepository(db);
+    final repository = DriftProgressRepository(db);
 
     const letterIds = [
       'fr.letter.A',
@@ -198,7 +200,7 @@ void main() {
       );
     }
 
-    await tester.pumpWidget(_buildTestApp(progressDatabase: db));
+    await tester.pumpWidget(_buildTestApp(progressRepository: repository));
     await tester.pumpAndSettle();
 
     expect(find.byType(ChoiceCard), findsNWidgets(2));

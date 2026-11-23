@@ -10,8 +10,9 @@ import '../core/audio/tts_fallback_audio_service.dart';
 import '../core/content/alphabet_round.dart';
 import '../core/content/content_loader.dart';
 import '../core/content/models/alphabet_item.dart';
-import '../core/progress/progress_database.dart';
 import '../core/progress/progress_repository.dart';
+import '../core/progress/progress_repository_io.dart'
+    if (dart.library.js_interop) '../core/progress/progress_repository_web.dart';
 import '../core/progress/progression_engine.dart';
 
 /// The world (fr/en) chosen for the current session. Never changed mid
@@ -29,21 +30,17 @@ final alphabetRoundBuilderProvider = Provider<AlphabetRoundBuilder>(
 
 const progressionEngine = ProgressionEngine();
 
-/// One progression database for the whole app: item ids already encode
+/// One progression repository for the whole app: item ids already encode
 /// their world (e.g. `en.letter.F`), so there is nothing to separate by
-/// world here.
-final progressDatabaseProvider = Provider<ProgressDatabase>((ref) {
-  final db = ProgressDatabase();
-  ref.onDispose(db.close);
-  return db;
+/// world here. Resolves to a real SQLite-backed repository everywhere
+/// except the web dev preview, which gets a pure-Dart in-memory one
+/// (CLAUDE.md targets Android only; drift's native backend needs
+/// `dart:ffi`, unavailable in a browser).
+final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
+  final repository = createDefaultProgressRepository();
+  ref.onDispose(repository.dispose);
+  return repository;
 });
-
-final progressRepositoryProvider = Provider<ProgressRepository>(
-  (ref) => ProgressRepository(
-    ref.watch(progressDatabaseProvider),
-    engine: progressionEngine,
-  ),
-);
 
 final alphabetContentProvider = FutureProvider.family<AlphabetContent, String>(
   (ref, world) => ref.read(contentLoaderProvider).loadAlphabet(world),
