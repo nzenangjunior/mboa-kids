@@ -63,9 +63,19 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
 
   Timer? _advanceTimer;
 
+  /// Cached the first time it resolves (see [_audioFor]), so [dispose] can
+  /// stop it without touching `ref`: Riverpod forbids `ref.read` once a
+  /// widget is being unmounted, which is exactly when a screen change (the
+  /// scenario this is meant to guard against) calls dispose.
+  AudioService? _audio;
+
   @override
   void dispose() {
     _advanceTimer?.cancel();
+    // Nothing queued for this screen's world should keep playing (or keep
+    // blocking future calls, see FlutterTtsSpeechEngine) once the child has
+    // left it (CLAUDE.md section 13).
+    unawaited(_audio?.stop());
     super.dispose();
   }
 
@@ -198,14 +208,22 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
     return ChoiceCardState.normal;
   }
 
-  Future<void> _playPromptForRound(String world, AlphabetRound round) async {
+  /// Resolves the audio service and caches it in [_audio], so [dispose]
+  /// has something to stop without needing `ref` at that point.
+  Future<AudioService> _audioFor(String world) async {
     final audio = await ref.read(audioServiceProvider(world).future);
+    _audio = audio;
+    return audio;
+  }
+
+  Future<void> _playPromptForRound(String world, AlphabetRound round) async {
+    final audio = await _audioFor(world);
     await audio.playPrompt('find_the_letter');
     await audio.playItem(round.target.id);
   }
 
   Future<void> _replayTarget(String world, AlphabetRound round) async {
-    final audio = await ref.read(audioServiceProvider(world).future);
+    final audio = await _audioFor(world);
     await audio.playItem(round.target.id);
   }
 
@@ -233,27 +251,47 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       _newlyAcquiredGlyphs.add(round.target.glyph);
     }
 
-    final audio = await ref.read(audioServiceProvider(world).future);
-    if (isCorrect) {
-      if (isMainRound && firstTry) {
-        _mainCorrectFirstTryCount++;
+    if (isCorrect && isMainRound && firstTry) {
+      _mainCorrectFirstTryCount++;
+    }
+    if (!isCorrect && !_isRetry && !_endOfGameQueue.contains(round.target.id)) {
+      _endOfGameQueue.add(round.target.id);
+    }
+
+    // The timer that unlocks the round (advance on correct, retry on
+    // wrong) is scheduled here, before touching audio at all. Whatever
+    // happens to playback below — a clip that never resolves, a TTS
+    // phrase the browser never reports as finished — the child's taps
+    // must never stay locked out because of it (CLAUDE.md section 13):
+    // the short feedback timer is the only lock, and it always fires.
+    _advanceTimer?.cancel();
+    _advanceTimer = Timer(
+      isCorrect ? _autoAdvanceDelay : _wrongAnswerHighlightDuration,
+      isCorrect ? _goToNextRound : () => _retrySameRound(round),
+    );
+
+    unawaited(_playAnswerFeedbackAudio(world, isCorrect, round));
+  }
+
+  Future<void> _playAnswerFeedbackAudio(
+    String world,
+    bool isCorrect,
+    AlphabetRound round,
+  ) async {
+    try {
+      final audio = await _audioFor(world);
+      if (isCorrect) {
+        await _playCorrectAnswerAudio(audio);
+      } else {
+        // The correct answer glows for a fixed, predictable second; the
+        // instruction replay (which can take longer to actually speak) runs
+        // alongside it rather than gating the retry.
+        await _playWrongAnswerAudio(audio, round);
       }
-      unawaited(_playCorrectAnswerAudio(audio));
-      _advanceTimer?.cancel();
-      _advanceTimer = Timer(_autoAdvanceDelay, _goToNextRound);
-    } else {
-      if (!_isRetry && !_endOfGameQueue.contains(round.target.id)) {
-        _endOfGameQueue.add(round.target.id);
-      }
-      // The correct answer glows for a fixed, predictable second; the
-      // instruction replay (which can take longer to actually speak) runs
-      // alongside it rather than gating the retry.
-      unawaited(_playWrongAnswerAudio(audio, round));
-      _advanceTimer?.cancel();
-      _advanceTimer = Timer(
-        _wrongAnswerHighlightDuration,
-        () => _retrySameRound(round),
-      );
+    } catch (_) {
+      // Playback failing (or simply never finishing) must never affect the
+      // round: the timer scheduled in _onChoiceTap already controls when
+      // it unlocks, independently of this.
     }
   }
 
@@ -315,11 +353,32 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
     _finishGame();
   }
 
+  /// How long [_finishGame] waits on the sticker catalog and the database
+  /// write before giving up on them. Found by hand: a slow or stuck asset
+  /// load here used to leave the round's `_answerState` locked forever —
+  /// nothing ever reset it back to `waiting`, since the retry/advance
+  /// timers that normally do that only cover a single round, not the
+  /// finish step after the last one (CLAUDE.md section 13). Finishing the
+  /// game (with a built-in sticker instead of a catalog one, this one
+  /// time) matters more than waiting indefinitely for either.
+  static const _finishGameStepTimeout = Duration(seconds: 4);
+
+  static const _fallbackSticker = GameSticker(id: 'sticker.fallback', emoji: '⭐');
+
   Future<void> _finishGame() async {
     final repository = ref.read(progressRepositoryProvider);
-    final catalog = await ref.read(stickerCatalogListProvider.future);
-    final sticker = pickRandomSticker(catalog, _random);
-    await repository.recordStickerEarned(sticker.id, ref.read(engineClockProvider)());
+    var sticker = _fallbackSticker;
+    try {
+      final catalog = await ref
+          .read(stickerCatalogListProvider.future)
+          .timeout(_finishGameStepTimeout);
+      sticker = pickRandomSticker(catalog, _random);
+      await repository
+          .recordStickerEarned(sticker.id, ref.read(engineClockProvider)())
+          .timeout(_finishGameStepTimeout);
+    } catch (_) {
+      // Keep the built-in sticker and move on regardless of what failed.
+    }
 
     if (!mounted) return;
     context.go(

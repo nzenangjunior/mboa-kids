@@ -8,6 +8,7 @@ class _FakeClipPlayer implements ClipPlayer {
 
   final Set<String> failingPaths;
   final List<String> played = [];
+  int stopCalls = 0;
 
   @override
   Future<void> playAsset(String assetPath) async {
@@ -16,6 +17,9 @@ class _FakeClipPlayer implements ClipPlayer {
       throw Exception('missing asset: $assetPath');
     }
   }
+
+  @override
+  Future<void> stop() async => stopCalls++;
 }
 
 class _FakeAudioService implements AudioService {
@@ -23,6 +27,7 @@ class _FakeAudioService implements AudioService {
   final List<String> promptCalls = [];
   final List<String> sfxCalls = [];
   int praiseCalls = 0;
+  int stopCalls = 0;
 
   @override
   Future<void> playItem(String itemId) async => itemCalls.add(itemId);
@@ -35,6 +40,9 @@ class _FakeAudioService implements AudioService {
 
   @override
   Future<void> playPraise() async => praiseCalls++;
+
+  @override
+  Future<void> stop() async => stopCalls++;
 }
 
 void main() {

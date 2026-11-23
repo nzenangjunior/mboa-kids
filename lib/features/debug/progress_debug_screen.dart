@@ -72,14 +72,23 @@ class ProgressDebugScreen extends ConsumerWidget {
       body: alphabetAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => const Center(child: Text('Erreur de chargement')),
-        data: (alphabet) => _ItemList(world: world, alphabet: alphabet),
+        // Keyed on `world`: without this, switching FR/EN keeps the same
+        // `_ItemList` element, and its FutureBuilder keeps showing the
+        // previous world's (now stale) snapshot data — built from the old
+        // `orderedIds` — while `alphabet.items` has already moved to the
+        // new world, until the new future resolves. `data.snapshots[id]!`
+        // then finds no entry for an id from the new world and throws. The
+        // key forces a fresh `_ItemList` (and FutureBuilder) per world
+        // instead, with no stale data to show in between.
+        data: (alphabet) =>
+            _ItemList(key: ValueKey(world), world: world, alphabet: alphabet),
       ),
     );
   }
 }
 
 class _ItemList extends ConsumerWidget {
-  const _ItemList({required this.world, required this.alphabet});
+  const _ItemList({super.key, required this.world, required this.alphabet});
 
   final String world;
   final AlphabetContent alphabet;

@@ -6,16 +6,36 @@ import 'package:flutter_tts/flutter_tts.dart';
 /// wrapper so [TtsFallbackAudioService] can be unit tested with a fake.
 abstract class SpeechEngine {
   Future<void> speak(String text, {required String locale});
+
+  /// Stops the current utterance and drops anything still queued behind
+  /// it. Called when the child leaves the screen that asked for speech, so
+  /// a phrase that never reports completion (see [speak]'s doc) can't go
+  /// on blocking every later call.
+  Future<void> stop();
 }
 
 class FlutterTtsSpeechEngine implements SpeechEngine {
   FlutterTtsSpeechEngine() : _tts = FlutterTts();
+
+  /// How long [_speakNow] waits for a single utterance before giving up on
+  /// it and letting the queue move on. The web `speechSynthesis` API can
+  /// simply never fire a completion event for an utterance that was cut
+  /// short (navigation, [stop]), and `awaitSpeakCompletion(true)` means
+  /// `speak()` then never resolves on its own — without this timeout that
+  /// one call would wedge every later call behind it forever.
+  static const _speakTimeout = Duration(seconds: 4);
 
   final FlutterTts _tts;
   String? _currentLocale;
   bool _voicesChecked = false;
   bool _awaitCompletionSet = false;
   Future<void> _queue = Future<void>.value();
+
+  /// Bumped by [stop]. A queued [_speakNow] call captures the generation it
+  /// was queued under and checks it before doing anything observable, so a
+  /// [stop] call effectively drops whatever was still waiting behind the
+  /// utterance it interrupts, instead of letting it speak right after.
+  int _generation = 0;
 
   /// Different screens call [speak] from independent async chains (e.g. the
   /// wrong-answer feedback and, a second later, the next round's prompt)
@@ -30,14 +50,18 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
   /// guarantee true one-at-a-time playback.
   @override
   Future<void> speak(String text, {required String locale}) {
-    final result = _queue.then((_) => _speakNow(text, locale));
+    final generation = _generation;
+    final result = _queue.then((_) => _speakNow(text, locale, generation));
     _queue = result.catchError((_) {});
     return result;
   }
 
-  Future<void> _speakNow(String text, String locale) async {
+  Future<void> _speakNow(String text, String locale, int generation) async {
+    if (generation != _generation) return;
+
     await _ensureVoicesLoaded();
     await _ensureAwaitsCompletion();
+    if (generation != _generation) return;
 
     if (_currentLocale != locale) {
       final available = await _tts.isLanguageAvailable(locale);
@@ -50,7 +74,20 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
       await _tts.setLanguage(locale);
       _currentLocale = locale;
     }
-    await _tts.speak(text);
+    if (generation != _generation) return;
+
+    await _tts.speak(text).timeout(_speakTimeout, onTimeout: () => null);
+  }
+
+  /// Interrupts whatever is currently speaking and drops every utterance
+  /// still queued behind it (CLAUDE.md section 2.6 "deux mondes jamais
+  /// mélangés" relies on this too: leaving a world's game screen must not
+  /// let its queued phrases bleed into the next screen).
+  @override
+  Future<void> stop() async {
+    _generation++;
+    _queue = Future<void>.value();
+    await _tts.stop();
   }
 
   /// flutter_tts reuses a single native utterance object instead of

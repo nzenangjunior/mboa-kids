@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/native.dart';
@@ -44,6 +45,44 @@ class _FakeAudioService implements AudioService {
 
   @override
   Future<void> playPraise() async {}
+
+  @override
+  Future<void> stop() async {}
+}
+
+/// Simulates a voice that never reports completion (CLAUDE.md section 13:
+/// the web `speechSynthesis` API can leave an utterance's completion event
+/// unfired after an interruption). Every call here returns a `Future` that
+/// resolves only if [stop] is called, so a test can check that the game
+/// stays playable regardless.
+class _NeverCompletingAudioService implements AudioService {
+  final List<Completer<void>> _pending = [];
+
+  Future<void> _hang() {
+    final completer = Completer<void>();
+    _pending.add(completer);
+    return completer.future;
+  }
+
+  @override
+  Future<void> playItem(String itemId) => _hang();
+
+  @override
+  Future<void> playPrompt(String key) => _hang();
+
+  @override
+  Future<void> playSfx(String name) => _hang();
+
+  @override
+  Future<void> playPraise() => _hang();
+
+  @override
+  Future<void> stop() async {
+    for (final completer in _pending) {
+      if (!completer.isCompleted) completer.complete();
+    }
+    _pending.clear();
+  }
 }
 
 const _alphabetJson = '''
@@ -66,7 +105,10 @@ const _alphabetJson = '''
 }
 ''';
 
-Widget _buildTestApp({ProgressRepository? progressRepository}) {
+Widget _buildTestApp({
+  ProgressRepository? progressRepository,
+  AudioService? audioService,
+}) {
   return ProviderScope(
     overrides: [
       worldProvider.overrideWith((ref) => 'fr'),
@@ -75,7 +117,9 @@ Widget _buildTestApp({ProgressRepository? progressRepository}) {
           _FakeAssetBundle({'assets/content/fr/alphabet.json': _alphabetJson}),
         ),
       ),
-      audioServiceProvider('fr').overrideWith((ref) async => _FakeAudioService()),
+      audioServiceProvider(
+        'fr',
+      ).overrideWith((ref) async => audioService ?? _FakeAudioService()),
       progressRepositoryProvider.overrideWithValue(
         progressRepository ??
             DriftProgressRepository(ProgressDatabase(NativeDatabase.memory())),
@@ -241,4 +285,65 @@ void main() {
     final cards = tester.widgetList<ChoiceCard>(find.byType(ChoiceCard));
     expect(cards.where((card) => card.isHinted).length, 1);
   });
+
+  testWidgets(
+    'the game stays playable when the voice never reports completion',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(audioService: _NeverCompletingAudioService()),
+      );
+      await tester.pumpAndSettle();
+
+      // Every tap below waits past the feedback timer (1700ms > the 1500ms
+      // auto-advance and the 1000ms wrong-answer highlight), so each one
+      // must either advance to a new round or retry the same one — never
+      // sit frozen waiting on audio that will never resolve.
+      for (var attempt = 0; attempt < 40; attempt++) {
+        if (find.text('BRAVO_MARKER').evaluate().isNotEmpty) break;
+        final cards = find.byType(ChoiceCard);
+        final widgets = tester.widgetList<ChoiceCard>(cards).toList();
+        // Mirrors a real child tapping the glowing hint once mode aidé
+        // kicks in, instead of cycling blind: with only 2 choices left,
+        // index-cycling can unluckily miss the same one for many rounds in
+        // a row, which is noise this test (about staying playable, not
+        // about guessing odds) doesn't need.
+        final hintedIndex = widgets.indexWhere((c) => c.isHinted);
+        final tapIndex = hintedIndex >= 0 ? hintedIndex : attempt % widgets.length;
+        await tester.tap(cards.at(tapIndex));
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pumpAndSettle();
+
+        final stillHasChoices = find.byType(ChoiceCard).evaluate().isNotEmpty;
+        final reachedBravo = find.text('BRAVO_MARKER').evaluate().isNotEmpty;
+        expect(
+          stillHasChoices || reachedBravo,
+          isTrue,
+          reason: 'round $attempt: game is stuck with no tappable choices',
+        );
+      }
+
+      expect(find.text('BRAVO_MARKER'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping a choice several times fast while it is still highlighted does not break the round',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(audioService: _NeverCompletingAudioService()),
+      );
+      await tester.pumpAndSettle();
+
+      final firstChoice = find.byType(ChoiceCard).first;
+      for (var i = 0; i < 5; i++) {
+        await tester.tap(firstChoice, warnIfMissed: false);
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      await tester.pump(const Duration(milliseconds: 1700));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChoiceCard), findsWidgets);
+    },
+  );
 }

@@ -6,6 +6,9 @@ abstract class ClipPlayer {
   /// Plays the asset at [assetPath] (relative to the Flutter asset root).
   /// Throws if the asset does not exist or fails to decode.
   Future<void> playAsset(String assetPath);
+
+  /// Stops whatever clip is currently playing.
+  Future<void> stop();
 }
 
 class JustAudioClipPlayer implements ClipPlayer {
@@ -18,6 +21,9 @@ class JustAudioClipPlayer implements ClipPlayer {
     await _player.setAsset('assets/$assetPath');
     await _player.play();
   }
+
+  @override
+  Future<void> stop() => _player.stop();
 
   Future<void> dispose() => _player.dispose();
 }

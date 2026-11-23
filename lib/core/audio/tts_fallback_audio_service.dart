@@ -51,4 +51,7 @@ class TtsFallbackAudioService implements AudioService {
 
   Future<void> _speak(String text) =>
       _speechEngine.speak(text, locale: _locale);
+
+  @override
+  Future<void> stop() => _speechEngine.stop();
 }

@@ -10,11 +10,15 @@ class _Spoken {
 
 class _FakeSpeechEngine implements SpeechEngine {
   final List<_Spoken> calls = [];
+  int stopCalls = 0;
 
   @override
   Future<void> speak(String text, {required String locale}) async {
     calls.add(_Spoken(text, locale));
   }
+
+  @override
+  Future<void> stop() async => stopCalls++;
 }
 
 void main() {
@@ -75,6 +79,20 @@ void main() {
     await service.playPraise();
 
     expect(engine.calls.single.text, 'Bravo Estrella !');
+  });
+
+  test('stop stops the underlying speech engine', () async {
+    final engine = _FakeSpeechEngine();
+    final service = TtsFallbackAudioService(
+      speechEngine: engine,
+      locale: 'fr-FR',
+      itemSpokenText: const {},
+      promptSpokenText: const {},
+    );
+
+    await service.stop();
+
+    expect(engine.stopCalls, 1);
   });
 
   test('playSfx never speaks anything', () async {

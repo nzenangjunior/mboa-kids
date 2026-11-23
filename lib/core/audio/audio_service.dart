@@ -17,4 +17,9 @@ abstract class AudioService {
 
   /// Plays a praise phrase, e.g. at the end of a game.
   Future<void> playPraise();
+
+  /// Stops whatever is currently playing or queued. Called when the child
+  /// leaves a screen, so no leftover clip or spoken phrase from that screen
+  /// is still running (or blocking future calls) once a new one starts.
+  Future<void> stop();
 }

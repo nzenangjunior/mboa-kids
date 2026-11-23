@@ -84,6 +84,12 @@ class ClipAudioService implements AudioService {
     }
   }
 
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await _fallback.stop();
+  }
+
   static void _logMissingClip(String missingId) {
     developer.log('Missing audio clip, falling back to TTS: $missingId', name: 'AudioService');
   }
