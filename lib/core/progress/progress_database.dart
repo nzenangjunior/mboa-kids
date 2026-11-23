@@ -17,7 +17,7 @@ class ItemProgressRows extends Table {
   IntColumn get state => intEnum<ItemState>()();
   IntColumn get correctFirstTryCount => integer().withDefault(const Constant(0))();
   IntColumn get consecutiveWrong => integer().withDefault(const Constant(0))();
-  DateTimeColumn get acquiredAt => dateTime().nullable()();
+  DateTimeColumn get firstAcquiredAt => dateTime().nullable()();
   IntColumn get reviewStage => integer().withDefault(const Constant(0))();
   DateTimeColumn get nextDueAt => dateTime().nullable()();
 

@@ -11,7 +11,7 @@ class ItemProgressSnapshot {
     this.correctFirstTryCount = 0,
     Set<DateTime>? correctFirstTryDays,
     this.consecutiveWrong = 0,
-    this.acquiredAt,
+    this.firstAcquiredAt,
     this.reviewStage = 0,
     this.nextDueAt,
   }) : correctFirstTryDays = (correctFirstTryDays ?? const {})
@@ -23,7 +23,12 @@ class ItemProgressSnapshot {
   final int correctFirstTryCount;
   final Set<DateTime> correctFirstTryDays;
   final int consecutiveWrong;
-  final DateTime? acquiredAt;
+
+  /// Set once, the first time this item ever reaches `acquis`, and never
+  /// cleared again — including if a later wrong review demotes [state]
+  /// back to `aRevoir`. This is what the sticker album (CLAUDE.md section
+  /// 8) checks: a sticker already earned is never taken away.
+  final DateTime? firstAcquiredAt;
 
   /// Number of spaced-repetition reviews already completed since
   /// acquisition (0 = just acquired, not reviewed yet).
@@ -35,7 +40,7 @@ class ItemProgressSnapshot {
     int? correctFirstTryCount,
     Set<DateTime>? correctFirstTryDays,
     int? consecutiveWrong,
-    DateTime? acquiredAt,
+    DateTime? firstAcquiredAt,
     int? reviewStage,
     DateTime? nextDueAt,
     bool clearNextDueAt = false,
@@ -46,7 +51,7 @@ class ItemProgressSnapshot {
       correctFirstTryCount: correctFirstTryCount ?? this.correctFirstTryCount,
       correctFirstTryDays: correctFirstTryDays ?? this.correctFirstTryDays,
       consecutiveWrong: consecutiveWrong ?? this.consecutiveWrong,
-      acquiredAt: acquiredAt ?? this.acquiredAt,
+      firstAcquiredAt: firstAcquiredAt ?? this.firstAcquiredAt,
       reviewStage: reviewStage ?? this.reviewStage,
       nextDueAt: clearNextDueAt ? null : (nextDueAt ?? this.nextDueAt),
     );

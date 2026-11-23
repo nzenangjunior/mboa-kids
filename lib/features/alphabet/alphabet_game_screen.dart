@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -13,7 +15,9 @@ enum _AnswerState { waiting, correct, incorrect }
 /// "Écoute et touche la lettre": the first real game (CLAUDE.md section
 /// 10, step 3). The mascot speaks the target letter, the child taps one
 /// of 3 choices; a wrong answer is never punished, it just shows the
-/// right answer (section 2.5).
+/// right answer (section 2.5). Each question is a single attempt, so it
+/// is always the child's "first try" at that item for progression
+/// purposes (CLAUDE.md section 7).
 class AlphabetGameScreen extends ConsumerStatefulWidget {
   const AlphabetGameScreen({super.key});
 
@@ -25,11 +29,15 @@ class AlphabetGameScreen extends ConsumerStatefulWidget {
 class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
   static const _questionCount = 5;
 
+  final _random = Random();
+
   List<AlphabetRound>? _rounds;
   int _roundIndex = 0;
   _AnswerState _answerState = _AnswerState.waiting;
   String? _selectedId;
   bool _promptPlayedForRound = false;
+  bool _roundReady = false;
+  bool _aidedMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +57,12 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
     _rounds ??= ref
         .read(alphabetRoundBuilderProvider)
         .buildGame(alphabet.items, questionCount: _questionCount);
+
+    if (!_roundReady) {
+      _prepareRound(_rounds![_roundIndex]);
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final round = _rounds![_roundIndex];
 
     if (!_promptPlayedForRound) {
@@ -72,6 +86,7 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
                     key: Key('choice-${choice.id}'),
                     label: choice.glyph,
                     state: _stateFor(choice, round),
+                    isHinted: _aidedMode && choice.id == round.target.id,
                     onTap: _answerState == _AnswerState.waiting
                         ? () => _onChoiceTap(world, round, choice)
                         : null,
@@ -89,6 +104,21 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _prepareRound(AlphabetRound round) async {
+    final repository = ref.read(progressRepositoryProvider);
+    final snapshot = await repository.snapshotFor(round.target.id);
+    final aided = progressionEngine.shouldUseAidedMode(snapshot);
+
+    if (!mounted) return;
+    setState(() {
+      if (aided) {
+        _rounds![_roundIndex] = round.trimmedTo(1, _random);
+      }
+      _aidedMode = aided;
+      _roundReady = true;
+    });
   }
 
   ChoiceCardState _stateFor(AlphabetItem choice, AlphabetRound round) {
@@ -120,6 +150,13 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       _answerState = isCorrect ? _AnswerState.correct : _AnswerState.incorrect;
     });
 
+    await ref.read(progressRepositoryProvider).recordAnswer(
+          itemId: round.target.id,
+          correct: isCorrect,
+          firstTry: true,
+          today: DateTime.now(),
+        );
+
     final audio = await ref.read(audioServiceProvider(world).future);
     if (isCorrect) {
       await audio.playSfx('success_chime');
@@ -139,6 +176,8 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       _answerState = _AnswerState.waiting;
       _selectedId = null;
       _promptPlayedForRound = false;
+      _roundReady = false;
+      _aidedMode = false;
     });
   }
 }

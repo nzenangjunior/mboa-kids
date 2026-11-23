@@ -58,6 +58,7 @@ void main() {
     expect(reloaded.state, ItemState.acquis);
     expect(reloaded.correctFirstTryCount, 3);
     expect(reloaded.correctFirstTryDays, {day1, day2});
+    expect(reloaded.firstAcquiredAt, day2);
   });
 
   test('statesFor returns the current state of several items at once', () async {

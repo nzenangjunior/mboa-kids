@@ -13,18 +13,23 @@ class ChoiceCard extends StatelessWidget {
     required this.label,
     required this.state,
     required this.onTap,
+    this.isHinted = false,
   });
 
   final String label;
   final ChoiceCardState state;
   final VoidCallback? onTap;
 
+  /// "Mode aidé" (CLAUDE.md section 7): the correct answer glows gently
+  /// before the child has tapped anything, after 2 consecutive mistakes.
+  final bool isHinted;
+
   @override
   Widget build(BuildContext context) {
     final Color background;
     switch (state) {
       case ChoiceCardState.normal:
-        background = Colors.white;
+        background = isHinted ? MboaKidsTheme.lightPink : Colors.white;
       case ChoiceCardState.correct:
         background = Colors.green.shade300;
       case ChoiceCardState.incorrect:
@@ -34,7 +39,8 @@ class ChoiceCard extends StatelessWidget {
     return Material(
       color: background,
       borderRadius: BorderRadius.circular(24),
-      elevation: 4,
+      elevation: isHinted && state == ChoiceCardState.normal ? 8 : 4,
+      shadowColor: isHinted ? MboaKidsTheme.pink : null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
@@ -42,6 +48,12 @@ class ChoiceCard extends StatelessWidget {
           width: 120,
           height: 120,
           alignment: Alignment.center,
+          decoration: isHinted && state == ChoiceCardState.normal
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: MboaKidsTheme.pink, width: 3),
+                )
+              : null,
           child: Text(
             label,
             style: const TextStyle(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:mboa_kids/app/providers.dart';
 import 'package:mboa_kids/core/audio/audio_service.dart';
 import 'package:mboa_kids/core/content/content_loader.dart';
+import 'package:mboa_kids/core/progress/progress_database.dart';
+import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/features/alphabet/alphabet_game_screen.dart';
 import 'package:mboa_kids/shared/widgets/choice_card.dart';
 
@@ -62,7 +65,7 @@ const _alphabetJson = '''
 }
 ''';
 
-Widget _buildTestApp() {
+Widget _buildTestApp({ProgressDatabase? progressDatabase}) {
   return ProviderScope(
     overrides: [
       worldProvider.overrideWith((ref) => 'fr'),
@@ -72,6 +75,9 @@ Widget _buildTestApp() {
         ),
       ),
       audioServiceProvider('fr').overrideWith((ref) async => _FakeAudioService()),
+      progressDatabaseProvider.overrideWithValue(
+        progressDatabase ?? ProgressDatabase.forTesting(NativeDatabase.memory()),
+      ),
     ],
     child: MaterialApp.router(
       routerConfig: GoRouter(
@@ -130,5 +136,73 @@ void main() {
     }
 
     expect(find.text('BRAVO_MARKER'), findsOneWidget);
+  });
+
+  testWidgets('answering a question records the result in the progress repository', (
+    WidgetTester tester,
+  ) async {
+    final db = ProgressDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repository = ProgressRepository(db);
+
+    await tester.pumpWidget(_buildTestApp(progressDatabase: db));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(ChoiceCard).first);
+    await tester.pumpAndSettle();
+
+    const letterIds = [
+      'fr.letter.A',
+      'fr.letter.B',
+      'fr.letter.C',
+      'fr.letter.D',
+      'fr.letter.E',
+    ];
+    final touched = <String>[];
+    for (final id in letterIds) {
+      final snapshot = await repository.snapshotFor(id);
+      if (snapshot.correctFirstTryCount > 0 || snapshot.consecutiveWrong > 0) {
+        touched.add(id);
+      }
+    }
+
+    expect(touched, hasLength(1));
+  });
+
+  testWidgets('mode aidé shows 2 choices with the correct one hinted', (
+    WidgetTester tester,
+  ) async {
+    final db = ProgressDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repository = ProgressRepository(db);
+
+    const letterIds = [
+      'fr.letter.A',
+      'fr.letter.B',
+      'fr.letter.C',
+      'fr.letter.D',
+      'fr.letter.E',
+    ];
+    for (final id in letterIds) {
+      await repository.recordAnswer(
+        itemId: id,
+        correct: false,
+        firstTry: true,
+        today: DateTime(2026, 1, 1),
+      );
+      await repository.recordAnswer(
+        itemId: id,
+        correct: false,
+        firstTry: true,
+        today: DateTime(2026, 1, 1),
+      );
+    }
+
+    await tester.pumpWidget(_buildTestApp(progressDatabase: db));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ChoiceCard), findsNWidgets(2));
+    final cards = tester.widgetList<ChoiceCard>(find.byType(ChoiceCard));
+    expect(cards.where((card) => card.isHinted).length, 1);
   });
 }

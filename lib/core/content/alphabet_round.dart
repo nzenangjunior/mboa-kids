@@ -9,6 +9,17 @@ class AlphabetRound {
 
   final AlphabetItem target;
   final List<AlphabetItem> choices;
+
+  /// "Mode aidé" (CLAUDE.md section 7): trims this round down to the
+  /// target plus [otherChoicesCount] random distractors from the choices
+  /// it already has, without re-running pool selection.
+  AlphabetRound trimmedTo(int otherChoicesCount, Random random) {
+    final others = [...choices.where((c) => c.id != target.id)]
+      ..shuffle(random);
+    final trimmed = [target, ...others.take(otherChoicesCount)]
+      ..shuffle(random);
+    return AlphabetRound(target: target, choices: trimmed);
+  }
 }
 
 /// Builds alphabet game rounds. Pure selection logic, kept out of widgets

@@ -8,10 +8,13 @@ DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 /// no widget, no database.
 ///
 /// `acquis` requires 3 correct first-try answers spread over at least 2
-/// different days. Once acquired, an item is never demoted by a wrong
-/// answer during review: CLAUDE.md rule 5 forbids punishing mistakes, and
-/// a status lost over a slip would read as a punishment. A wrong review
-/// answer simply leaves the item due again, unchanged.
+/// different days. Once an item has been acquired at least once (tracked
+/// by [ItemProgressSnapshot.firstAcquiredAt], which is never cleared), it
+/// lives on the spaced-repetition schedule: a wrong answer during review
+/// demotes it back to `aRevoir` with a review due at J+1. CLAUDE.md rule 5
+/// ("pas de punition") is about what the child sees on screen — no sound,
+/// no lost screen, no visible setback — not about the internal tracking,
+/// which must reflect reality for the parent's follow-up.
 class ProgressionEngine {
   const ProgressionEngine({
     this.acquisitionThreshold = 3,
@@ -40,12 +43,12 @@ class ProgressionEngine {
   }) {
     final day = _dateOnly(today);
 
-    if (!correct) {
-      return current.copyWith(consecutiveWrong: current.consecutiveWrong + 1);
+    if (current.firstAcquiredAt != null) {
+      return correct ? _advanceReview(current, day) : _demote(current, day);
     }
 
-    if (current.state == ItemState.acquis) {
-      return _advanceReview(current, day);
+    if (!correct) {
+      return current.copyWith(consecutiveWrong: current.consecutiveWrong + 1);
     }
 
     var next = current.copyWith(consecutiveWrong: 0);
@@ -61,7 +64,7 @@ class ProgressionEngine {
           next.correctFirstTryDays.length >= acquisitionMinDistinctDays) {
         return next.copyWith(
           state: ItemState.acquis,
-          acquiredAt: day,
+          firstAcquiredAt: day,
           reviewStage: 0,
           nextDueAt: day.add(Duration(days: reviewOffsetsInDays[0])),
         );
@@ -79,16 +82,26 @@ class ProgressionEngine {
     final nextStage = current.reviewStage + 1;
     if (nextStage >= reviewOffsetsInDays.length) {
       return current.copyWith(
+        state: ItemState.acquis,
         consecutiveWrong: 0,
         reviewStage: nextStage,
         clearNextDueAt: true,
       );
     }
-    final anchor = current.acquiredAt ?? day;
     return current.copyWith(
+      state: ItemState.acquis,
       consecutiveWrong: 0,
       reviewStage: nextStage,
-      nextDueAt: anchor.add(Duration(days: reviewOffsetsInDays[nextStage])),
+      nextDueAt: day.add(Duration(days: reviewOffsetsInDays[nextStage])),
+    );
+  }
+
+  ItemProgressSnapshot _demote(ItemProgressSnapshot current, DateTime day) {
+    return current.copyWith(
+      state: ItemState.aRevoir,
+      consecutiveWrong: current.consecutiveWrong + 1,
+      reviewStage: 0,
+      nextDueAt: day.add(Duration(days: reviewOffsetsInDays[0])),
     );
   }
 }

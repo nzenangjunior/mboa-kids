@@ -37,7 +37,7 @@ class ProgressRepository {
       correctFirstTryCount: row.correctFirstTryCount,
       correctFirstTryDays: days,
       consecutiveWrong: row.consecutiveWrong,
-      acquiredAt: row.acquiredAt,
+      firstAcquiredAt: row.firstAcquiredAt,
       reviewStage: row.reviewStage,
       nextDueAt: row.nextDueAt,
     );
@@ -86,7 +86,7 @@ class ProgressRepository {
             state: snapshot.state,
             correctFirstTryCount: Value(snapshot.correctFirstTryCount),
             consecutiveWrong: Value(snapshot.consecutiveWrong),
-            acquiredAt: Value(snapshot.acquiredAt),
+            firstAcquiredAt: Value(snapshot.firstAcquiredAt),
             reviewStage: Value(snapshot.reviewStage),
             nextDueAt: Value(snapshot.nextDueAt),
           ),

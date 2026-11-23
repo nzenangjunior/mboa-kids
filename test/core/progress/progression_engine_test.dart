@@ -75,7 +75,7 @@ void main() {
       );
 
       expect(snapshot.state, ItemState.acquis);
-      expect(snapshot.acquiredAt, day2);
+      expect(snapshot.firstAcquiredAt, day2);
       expect(snapshot.reviewStage, 0);
       expect(snapshot.nextDueAt, day2.add(const Duration(days: 1)));
     });
@@ -128,66 +128,114 @@ void main() {
   });
 
   group('spaced repetition review', () {
-    test('a correct review advances J+1 to J+3', () {
+    test('a correct review advances from J+1 to a J+3 due date', () {
       final acquired = ItemProgressSnapshot(
         itemId: 'en.letter.A',
         state: ItemState.acquis,
-        acquiredAt: day1,
+        firstAcquiredAt: day1,
         reviewStage: 0,
         nextDueAt: day1.add(const Duration(days: 1)),
       );
+      final reviewDay = day1.add(const Duration(days: 1));
 
       final next = engine.recordAnswer(
         current: acquired,
         correct: true,
         firstTry: true,
-        today: day1.add(const Duration(days: 1)),
+        today: reviewDay,
       );
 
       expect(next.state, ItemState.acquis);
       expect(next.reviewStage, 1);
-      expect(next.nextDueAt, day1.add(const Duration(days: 3)));
+      expect(next.nextDueAt, reviewDay.add(const Duration(days: 3)));
     });
 
-    test('completing the J+7 review clears the due date', () {
-      final acquired = ItemProgressSnapshot(
+    test('the schedule continues to J+21 then J+60 after J+7', () {
+      final afterJ7 = ItemProgressSnapshot(
         itemId: 'en.letter.A',
         state: ItemState.acquis,
-        acquiredAt: day1,
+        firstAcquiredAt: day1,
         reviewStage: 2,
         nextDueAt: day1.add(const Duration(days: 7)),
       );
+      final reviewDay = day1.add(const Duration(days: 7));
 
       final next = engine.recordAnswer(
-        current: acquired,
+        current: afterJ7,
         correct: true,
         firstTry: true,
-        today: day1.add(const Duration(days: 7)),
+        today: reviewDay,
       );
 
       expect(next.reviewStage, 3);
+      expect(next.nextDueAt, reviewDay.add(const Duration(days: 21)));
+    });
+
+    test('completing the J+60 review clears the due date for good', () {
+      final afterJ21 = ItemProgressSnapshot(
+        itemId: 'en.letter.A',
+        state: ItemState.acquis,
+        firstAcquiredAt: day1,
+        reviewStage: 4,
+        nextDueAt: day1.add(const Duration(days: 60)),
+      );
+
+      final next = engine.recordAnswer(
+        current: afterJ21,
+        correct: true,
+        firstTry: true,
+        today: day1.add(const Duration(days: 60)),
+      );
+
+      expect(next.state, ItemState.acquis);
+      expect(next.reviewStage, 5);
       expect(next.nextDueAt, isNull);
     });
 
-    test('a wrong review answer never demotes an acquired item', () {
+    test('a wrong review answer demotes to aRevoir with a J+1 due date', () {
       final acquired = ItemProgressSnapshot(
         itemId: 'en.letter.A',
         state: ItemState.acquis,
-        acquiredAt: day1,
-        reviewStage: 0,
-        nextDueAt: day1.add(const Duration(days: 1)),
+        firstAcquiredAt: day1,
+        reviewStage: 2,
+        nextDueAt: day1.add(const Duration(days: 7)),
       );
+      final reviewDay = day1.add(const Duration(days: 7));
 
       final next = engine.recordAnswer(
         current: acquired,
         correct: false,
         firstTry: true,
-        today: day1.add(const Duration(days: 1)),
+        today: reviewDay,
+      );
+
+      expect(next.state, ItemState.aRevoir);
+      expect(next.reviewStage, 0);
+      expect(next.nextDueAt, reviewDay.add(const Duration(days: 1)));
+      // The sticker already earned is never taken away.
+      expect(next.firstAcquiredAt, day1);
+    });
+
+    test('a demoted item can become acquis again on its next review', () {
+      final demoted = ItemProgressSnapshot(
+        itemId: 'en.letter.A',
+        state: ItemState.aRevoir,
+        firstAcquiredAt: day1,
+        reviewStage: 0,
+        nextDueAt: day1.add(const Duration(days: 8)),
+      );
+      final reviewDay = day1.add(const Duration(days: 8));
+
+      final next = engine.recordAnswer(
+        current: demoted,
+        correct: true,
+        firstTry: true,
+        today: reviewDay,
       );
 
       expect(next.state, ItemState.acquis);
-      expect(next.reviewStage, 0);
-      expect(next.nextDueAt, acquired.nextDueAt);
+      expect(next.reviewStage, 1);
+      expect(next.nextDueAt, reviewDay.add(const Duration(days: 3)));
     });
   });
 }

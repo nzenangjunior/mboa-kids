@@ -50,17 +50,18 @@ class $ItemProgressRowsTable extends ItemProgressRows
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _acquiredAtMeta = const VerificationMeta(
-    'acquiredAt',
+  static const VerificationMeta _firstAcquiredAtMeta = const VerificationMeta(
+    'firstAcquiredAt',
   );
   @override
-  late final GeneratedColumn<DateTime> acquiredAt = GeneratedColumn<DateTime>(
-    'acquired_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
+  late final GeneratedColumn<DateTime> firstAcquiredAt =
+      GeneratedColumn<DateTime>(
+        'first_acquired_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _reviewStageMeta = const VerificationMeta(
     'reviewStage',
   );
@@ -90,7 +91,7 @@ class $ItemProgressRowsTable extends ItemProgressRows
     state,
     correctFirstTryCount,
     consecutiveWrong,
-    acquiredAt,
+    firstAcquiredAt,
     reviewStage,
     nextDueAt,
   ];
@@ -132,10 +133,13 @@ class $ItemProgressRowsTable extends ItemProgressRows
         ),
       );
     }
-    if (data.containsKey('acquired_at')) {
+    if (data.containsKey('first_acquired_at')) {
       context.handle(
-        _acquiredAtMeta,
-        acquiredAt.isAcceptableOrUnknown(data['acquired_at']!, _acquiredAtMeta),
+        _firstAcquiredAtMeta,
+        firstAcquiredAt.isAcceptableOrUnknown(
+          data['first_acquired_at']!,
+          _firstAcquiredAtMeta,
+        ),
       );
     }
     if (data.containsKey('review_stage')) {
@@ -180,9 +184,9 @@ class $ItemProgressRowsTable extends ItemProgressRows
         DriftSqlType.int,
         data['${effectivePrefix}consecutive_wrong'],
       )!,
-      acquiredAt: attachedDatabase.typeMapping.read(
+      firstAcquiredAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
-        data['${effectivePrefix}acquired_at'],
+        data['${effectivePrefix}first_acquired_at'],
       ),
       reviewStage: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -209,7 +213,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
   final ItemState state;
   final int correctFirstTryCount;
   final int consecutiveWrong;
-  final DateTime? acquiredAt;
+  final DateTime? firstAcquiredAt;
   final int reviewStage;
   final DateTime? nextDueAt;
   const ItemProgressRow({
@@ -217,7 +221,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
     required this.state,
     required this.correctFirstTryCount,
     required this.consecutiveWrong,
-    this.acquiredAt,
+    this.firstAcquiredAt,
     required this.reviewStage,
     this.nextDueAt,
   });
@@ -232,8 +236,8 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
     }
     map['correct_first_try_count'] = Variable<int>(correctFirstTryCount);
     map['consecutive_wrong'] = Variable<int>(consecutiveWrong);
-    if (!nullToAbsent || acquiredAt != null) {
-      map['acquired_at'] = Variable<DateTime>(acquiredAt);
+    if (!nullToAbsent || firstAcquiredAt != null) {
+      map['first_acquired_at'] = Variable<DateTime>(firstAcquiredAt);
     }
     map['review_stage'] = Variable<int>(reviewStage);
     if (!nullToAbsent || nextDueAt != null) {
@@ -248,9 +252,9 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
       state: Value(state),
       correctFirstTryCount: Value(correctFirstTryCount),
       consecutiveWrong: Value(consecutiveWrong),
-      acquiredAt: acquiredAt == null && nullToAbsent
+      firstAcquiredAt: firstAcquiredAt == null && nullToAbsent
           ? const Value.absent()
-          : Value(acquiredAt),
+          : Value(firstAcquiredAt),
       reviewStage: Value(reviewStage),
       nextDueAt: nextDueAt == null && nullToAbsent
           ? const Value.absent()
@@ -272,7 +276,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
         json['correctFirstTryCount'],
       ),
       consecutiveWrong: serializer.fromJson<int>(json['consecutiveWrong']),
-      acquiredAt: serializer.fromJson<DateTime?>(json['acquiredAt']),
+      firstAcquiredAt: serializer.fromJson<DateTime?>(json['firstAcquiredAt']),
       reviewStage: serializer.fromJson<int>(json['reviewStage']),
       nextDueAt: serializer.fromJson<DateTime?>(json['nextDueAt']),
     );
@@ -287,7 +291,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
       ),
       'correctFirstTryCount': serializer.toJson<int>(correctFirstTryCount),
       'consecutiveWrong': serializer.toJson<int>(consecutiveWrong),
-      'acquiredAt': serializer.toJson<DateTime?>(acquiredAt),
+      'firstAcquiredAt': serializer.toJson<DateTime?>(firstAcquiredAt),
       'reviewStage': serializer.toJson<int>(reviewStage),
       'nextDueAt': serializer.toJson<DateTime?>(nextDueAt),
     };
@@ -298,7 +302,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
     ItemState? state,
     int? correctFirstTryCount,
     int? consecutiveWrong,
-    Value<DateTime?> acquiredAt = const Value.absent(),
+    Value<DateTime?> firstAcquiredAt = const Value.absent(),
     int? reviewStage,
     Value<DateTime?> nextDueAt = const Value.absent(),
   }) => ItemProgressRow(
@@ -306,7 +310,9 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
     state: state ?? this.state,
     correctFirstTryCount: correctFirstTryCount ?? this.correctFirstTryCount,
     consecutiveWrong: consecutiveWrong ?? this.consecutiveWrong,
-    acquiredAt: acquiredAt.present ? acquiredAt.value : this.acquiredAt,
+    firstAcquiredAt: firstAcquiredAt.present
+        ? firstAcquiredAt.value
+        : this.firstAcquiredAt,
     reviewStage: reviewStage ?? this.reviewStage,
     nextDueAt: nextDueAt.present ? nextDueAt.value : this.nextDueAt,
   );
@@ -320,9 +326,9 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
       consecutiveWrong: data.consecutiveWrong.present
           ? data.consecutiveWrong.value
           : this.consecutiveWrong,
-      acquiredAt: data.acquiredAt.present
-          ? data.acquiredAt.value
-          : this.acquiredAt,
+      firstAcquiredAt: data.firstAcquiredAt.present
+          ? data.firstAcquiredAt.value
+          : this.firstAcquiredAt,
       reviewStage: data.reviewStage.present
           ? data.reviewStage.value
           : this.reviewStage,
@@ -337,7 +343,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
           ..write('state: $state, ')
           ..write('correctFirstTryCount: $correctFirstTryCount, ')
           ..write('consecutiveWrong: $consecutiveWrong, ')
-          ..write('acquiredAt: $acquiredAt, ')
+          ..write('firstAcquiredAt: $firstAcquiredAt, ')
           ..write('reviewStage: $reviewStage, ')
           ..write('nextDueAt: $nextDueAt')
           ..write(')'))
@@ -350,7 +356,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
     state,
     correctFirstTryCount,
     consecutiveWrong,
-    acquiredAt,
+    firstAcquiredAt,
     reviewStage,
     nextDueAt,
   );
@@ -362,7 +368,7 @@ class ItemProgressRow extends DataClass implements Insertable<ItemProgressRow> {
           other.state == this.state &&
           other.correctFirstTryCount == this.correctFirstTryCount &&
           other.consecutiveWrong == this.consecutiveWrong &&
-          other.acquiredAt == this.acquiredAt &&
+          other.firstAcquiredAt == this.firstAcquiredAt &&
           other.reviewStage == this.reviewStage &&
           other.nextDueAt == this.nextDueAt);
 }
@@ -372,7 +378,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
   final Value<ItemState> state;
   final Value<int> correctFirstTryCount;
   final Value<int> consecutiveWrong;
-  final Value<DateTime?> acquiredAt;
+  final Value<DateTime?> firstAcquiredAt;
   final Value<int> reviewStage;
   final Value<DateTime?> nextDueAt;
   final Value<int> rowid;
@@ -381,7 +387,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
     this.state = const Value.absent(),
     this.correctFirstTryCount = const Value.absent(),
     this.consecutiveWrong = const Value.absent(),
-    this.acquiredAt = const Value.absent(),
+    this.firstAcquiredAt = const Value.absent(),
     this.reviewStage = const Value.absent(),
     this.nextDueAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -391,7 +397,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
     required ItemState state,
     this.correctFirstTryCount = const Value.absent(),
     this.consecutiveWrong = const Value.absent(),
-    this.acquiredAt = const Value.absent(),
+    this.firstAcquiredAt = const Value.absent(),
     this.reviewStage = const Value.absent(),
     this.nextDueAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -402,7 +408,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
     Expression<int>? state,
     Expression<int>? correctFirstTryCount,
     Expression<int>? consecutiveWrong,
-    Expression<DateTime>? acquiredAt,
+    Expression<DateTime>? firstAcquiredAt,
     Expression<int>? reviewStage,
     Expression<DateTime>? nextDueAt,
     Expression<int>? rowid,
@@ -413,7 +419,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
       if (correctFirstTryCount != null)
         'correct_first_try_count': correctFirstTryCount,
       if (consecutiveWrong != null) 'consecutive_wrong': consecutiveWrong,
-      if (acquiredAt != null) 'acquired_at': acquiredAt,
+      if (firstAcquiredAt != null) 'first_acquired_at': firstAcquiredAt,
       if (reviewStage != null) 'review_stage': reviewStage,
       if (nextDueAt != null) 'next_due_at': nextDueAt,
       if (rowid != null) 'rowid': rowid,
@@ -425,7 +431,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
     Value<ItemState>? state,
     Value<int>? correctFirstTryCount,
     Value<int>? consecutiveWrong,
-    Value<DateTime?>? acquiredAt,
+    Value<DateTime?>? firstAcquiredAt,
     Value<int>? reviewStage,
     Value<DateTime?>? nextDueAt,
     Value<int>? rowid,
@@ -435,7 +441,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
       state: state ?? this.state,
       correctFirstTryCount: correctFirstTryCount ?? this.correctFirstTryCount,
       consecutiveWrong: consecutiveWrong ?? this.consecutiveWrong,
-      acquiredAt: acquiredAt ?? this.acquiredAt,
+      firstAcquiredAt: firstAcquiredAt ?? this.firstAcquiredAt,
       reviewStage: reviewStage ?? this.reviewStage,
       nextDueAt: nextDueAt ?? this.nextDueAt,
       rowid: rowid ?? this.rowid,
@@ -461,8 +467,8 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
     if (consecutiveWrong.present) {
       map['consecutive_wrong'] = Variable<int>(consecutiveWrong.value);
     }
-    if (acquiredAt.present) {
-      map['acquired_at'] = Variable<DateTime>(acquiredAt.value);
+    if (firstAcquiredAt.present) {
+      map['first_acquired_at'] = Variable<DateTime>(firstAcquiredAt.value);
     }
     if (reviewStage.present) {
       map['review_stage'] = Variable<int>(reviewStage.value);
@@ -483,7 +489,7 @@ class ItemProgressRowsCompanion extends UpdateCompanion<ItemProgressRow> {
           ..write('state: $state, ')
           ..write('correctFirstTryCount: $correctFirstTryCount, ')
           ..write('consecutiveWrong: $consecutiveWrong, ')
-          ..write('acquiredAt: $acquiredAt, ')
+          ..write('firstAcquiredAt: $firstAcquiredAt, ')
           ..write('reviewStage: $reviewStage, ')
           ..write('nextDueAt: $nextDueAt, ')
           ..write('rowid: $rowid')
@@ -725,7 +731,7 @@ typedef $$ItemProgressRowsTableCreateCompanionBuilder =
       required ItemState state,
       Value<int> correctFirstTryCount,
       Value<int> consecutiveWrong,
-      Value<DateTime?> acquiredAt,
+      Value<DateTime?> firstAcquiredAt,
       Value<int> reviewStage,
       Value<DateTime?> nextDueAt,
       Value<int> rowid,
@@ -736,7 +742,7 @@ typedef $$ItemProgressRowsTableUpdateCompanionBuilder =
       Value<ItemState> state,
       Value<int> correctFirstTryCount,
       Value<int> consecutiveWrong,
-      Value<DateTime?> acquiredAt,
+      Value<DateTime?> firstAcquiredAt,
       Value<int> reviewStage,
       Value<DateTime?> nextDueAt,
       Value<int> rowid,
@@ -772,8 +778,8 @@ class $$ItemProgressRowsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get acquiredAt => $composableBuilder(
-    column: $table.acquiredAt,
+  ColumnFilters<DateTime> get firstAcquiredAt => $composableBuilder(
+    column: $table.firstAcquiredAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -817,8 +823,8 @@ class $$ItemProgressRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get acquiredAt => $composableBuilder(
-    column: $table.acquiredAt,
+  ColumnOrderings<DateTime> get firstAcquiredAt => $composableBuilder(
+    column: $table.firstAcquiredAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -858,8 +864,8 @@ class $$ItemProgressRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<DateTime> get acquiredAt => $composableBuilder(
-    column: $table.acquiredAt,
+  GeneratedColumn<DateTime> get firstAcquiredAt => $composableBuilder(
+    column: $table.firstAcquiredAt,
     builder: (column) => column,
   );
 
@@ -913,7 +919,7 @@ class $$ItemProgressRowsTableTableManager
                 Value<ItemState> state = const Value.absent(),
                 Value<int> correctFirstTryCount = const Value.absent(),
                 Value<int> consecutiveWrong = const Value.absent(),
-                Value<DateTime?> acquiredAt = const Value.absent(),
+                Value<DateTime?> firstAcquiredAt = const Value.absent(),
                 Value<int> reviewStage = const Value.absent(),
                 Value<DateTime?> nextDueAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -922,7 +928,7 @@ class $$ItemProgressRowsTableTableManager
                 state: state,
                 correctFirstTryCount: correctFirstTryCount,
                 consecutiveWrong: consecutiveWrong,
-                acquiredAt: acquiredAt,
+                firstAcquiredAt: firstAcquiredAt,
                 reviewStage: reviewStage,
                 nextDueAt: nextDueAt,
                 rowid: rowid,
@@ -933,7 +939,7 @@ class $$ItemProgressRowsTableTableManager
                 required ItemState state,
                 Value<int> correctFirstTryCount = const Value.absent(),
                 Value<int> consecutiveWrong = const Value.absent(),
-                Value<DateTime?> acquiredAt = const Value.absent(),
+                Value<DateTime?> firstAcquiredAt = const Value.absent(),
                 Value<int> reviewStage = const Value.absent(),
                 Value<DateTime?> nextDueAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -942,7 +948,7 @@ class $$ItemProgressRowsTableTableManager
                 state: state,
                 correctFirstTryCount: correctFirstTryCount,
                 consecutiveWrong: consecutiveWrong,
-                acquiredAt: acquiredAt,
+                firstAcquiredAt: firstAcquiredAt,
                 reviewStage: reviewStage,
                 nextDueAt: nextDueAt,
                 rowid: rowid,
