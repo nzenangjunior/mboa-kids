@@ -156,10 +156,12 @@ fin de chaque étape. Après chaque étape : `flutter analyze`, `flutter test`, 
    nombres 0–20 pour les deux mondes.
 3. **Premier jeu** : alphabet « écoute et touche la lettre » (3 choix), feedback bonne/mauvaise réponse.
 4. **Progression** : base drift, états, paquets, répétition espacée, mode aidé. Tests unitaires.
+   Sélection des questions pilotée par la vraie progression (révision d'abord, ~2 connus pour 1
+   nouveau), reprise automatique après erreur, panneau de debug `/debug/progress`.
 5. **Récompenses** : écran Bravo, étoiles, confettis, album d'autocollants, intensité.
-6. **Nombres** : écoute et touche, compte les objets, glisse le chiffre dans sa silhouette, dizaines.
-7. **Tracé** : CustomPainter, points clés par glyphe (JSON), tolérance large, flèches et point de départ,
+6. **Tracé** : CustomPainter, points clés par glyphe (JSON), tolérance large, flèches et point de départ,
    prénom.
+7. **Nombres** : écoute et touche, compte les objets, glisse le chiffre dans sa silhouette, dizaines.
 8. **Vocabulaire** : animaux et couleurs, image → mot, pont FR → EN.
 9. **Espace parent** : gate, réglages, enregistrement voix, suivi.
 10. **Parcours du jour + monde français** : sélection automatique, jeu-découverte, minuteur de séance.
@@ -184,3 +186,21 @@ flutter run -d <id-tablette>          # tablette branchée en USB, débogage USB
 flutter build apk --release --split-per-abi
 adb install build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
 ```
+
+## 13. Protocole de test
+
+En attendant la tablette, chaque bloc de travail est testé dans l'aperçu web (Chrome) avant
+d'être rendu à Louis. À appliquer à la fin de chaque bloc, dans cet ordre :
+
+1. Lancer l'aperçu web et l'ouvrir dans Chrome.
+2. Jouer au moins une partie complète dans le monde anglais avec au moins 2 erreurs volontaires,
+   en lisant la console pendant toute la partie.
+3. Vérifier chaque point du bloc un par un. Pour ce qui se mesure (étoiles, autocollants, états),
+   utiliser le panneau `/debug/progress` et son bouton « Simuler +1 jour ».
+4. Recharger la page et vérifier que les données sont toujours là.
+5. Corriger ce qui ne va pas et retester. Ne pas rendre la main avant que tout passe.
+
+Rapport de test attendu ensuite : chaque point du bloc avec OK/KO et ce qui a été observé, les
+erreurs de la console (ou « console propre »), des captures d'écran des écrans nouveaux ou
+modifiés, le numéro du commit et l'adresse de l'aperçu. Ne jamais écrire qu'une chose « devrait »
+marcher : décrire ce qui a été vu. Si un point n'a pas pu être testé, l'écrire clairement.
