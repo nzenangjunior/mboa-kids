@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/theme.dart';
 import '../../core/tracing/tracing_glyph.dart';
+import '../../core/tracing/tracing_matcher.dart';
 
 /// Draws the dotted letter guide (with a start dot and a direction arrow
 /// per stroke, CLAUDE.md section 10) and the child's own finger-drawn
@@ -11,6 +12,8 @@ class TracingCanvasPainter extends CustomPainter {
     required this.glyph,
     required this.drawnStrokes,
     required this.success,
+    this.showGuide = true,
+    this.replayProgress,
   });
 
   final TracingGlyph glyph;
@@ -20,10 +23,36 @@ class TracingCanvasPainter extends CustomPainter {
 
   final bool success;
 
+  /// Whether the dotted guide (path, start dot, arrow) is visible. False
+  /// once a letter has been traced correctly once and moves to the
+  /// "sans guide" reinforcement pass (CLAUDE.md section 10).
+  final bool showGuide;
+
+  /// When non-null (0..1), a traveling marker demonstrates the stroke
+  /// again after a failed attempt — the guide is always shown while this
+  /// plays, even in "sans guide" mode, so the demo makes sense.
+  final double? replayProgress;
+
   @override
   void paint(Canvas canvas, Size size) {
-    _paintGuide(canvas, size);
+    if (showGuide || replayProgress != null) {
+      _paintGuide(canvas, size);
+    }
     _paintDrawnStrokes(canvas, size);
+    if (replayProgress != null) {
+      _paintReplayMarker(canvas, size, replayProgress!);
+    }
+  }
+
+  void _paintReplayMarker(Canvas canvas, Size size, double progress) {
+    final dense = densifyGlyph(glyph);
+    if (dense.isEmpty) return;
+    final t = progress.clamp(0.0, 1.0) * (dense.length - 1);
+    final index = t.floor().clamp(0, dense.length - 1);
+    final nextIndex = (index + 1).clamp(0, dense.length - 1);
+    final point = Offset.lerp(dense[index], dense[nextIndex], t - index)!;
+    final markerPaint = Paint()..color = Colors.orange.shade600;
+    canvas.drawCircle(_scaleOffset(point, size), 18, markerPaint);
   }
 
   Offset _scalePoint(TracingPoint point, Size size) {
@@ -138,6 +167,8 @@ class TracingCanvasPainter extends CustomPainter {
   bool shouldRepaint(covariant TracingCanvasPainter oldDelegate) {
     return oldDelegate.glyph != glyph ||
         oldDelegate.drawnStrokes != drawnStrokes ||
-        oldDelegate.success != success;
+        oldDelegate.success != success ||
+        oldDelegate.showGuide != showGuide ||
+        oldDelegate.replayProgress != replayProgress;
   }
 }

@@ -1,4 +1,5 @@
 import '../content/models/alphabet_item.dart';
+import '../content/models/number_item.dart';
 import '../progress/item_state.dart';
 
 /// Which letters the tracing activity proposes, and in what order
@@ -38,4 +39,56 @@ List<AlphabetItem> buildTracingQueue({
   }
 
   return queue;
+}
+
+/// Digits 1 to [NumbersContent.writeMax] with tracing data available.
+/// Unlike letters, numbers are offered unconditionally regardless of
+/// progression state: there is no numbers-recognition game yet (CLAUDE.md
+/// section 10, step 7, still to come) to seed a starting state the way
+/// [buildTracingQueue] relies on for letters, so until that exists these
+/// are treated the same way the first name is — always traceable.
+List<NumberItem> buildNumberTracingQueue({
+  required NumbersContent numbersContent,
+  required bool Function(String glyph) hasTracingData,
+}) {
+  return [
+    for (var value = 1; value <= numbersContent.writeMax; value++)
+      if (hasTracingData(value.toString())) numbersContent.itemFor(value),
+  ];
+}
+
+/// One item offered by the tracing activity, letter or number alike: the
+/// screen only needs a stable id (for progress and audio) and the glyph
+/// key under which its guide is stored in [TracingContent].
+class TracingQueueItem {
+  const TracingQueueItem({required this.id, required this.glyphKey});
+
+  final String id;
+  final String glyphKey;
+}
+
+/// The full tracing queue: the child's name and recognized letters, then
+/// the available numbers, as one uniform list for the screen to drive.
+List<TracingQueueItem> buildFullTracingQueue({
+  required List<AlphabetItem> alphabetItems,
+  required Map<String, ItemState> states,
+  required String firstName,
+  required NumbersContent numbersContent,
+  required bool Function(String glyph) hasTracingData,
+}) {
+  final letters = buildTracingQueue(
+    alphabetItems: alphabetItems,
+    states: states,
+    firstName: firstName,
+    hasTracingData: hasTracingData,
+  );
+  final numbers = buildNumberTracingQueue(
+    numbersContent: numbersContent,
+    hasTracingData: hasTracingData,
+  );
+  return [
+    for (final item in letters) TracingQueueItem(id: item.id, glyphKey: item.glyph),
+    for (final item in numbers)
+      TracingQueueItem(id: item.id, glyphKey: item.value.toString()),
+  ];
 }

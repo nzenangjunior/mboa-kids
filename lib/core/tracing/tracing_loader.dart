@@ -19,4 +19,19 @@ class TracingLoader {
     final json = jsonDecode(raw) as Map<String, dynamic>;
     return TracingContent.fromJson(json);
   }
+
+  Future<TracingContent> loadNumbers() async {
+    final raw = await _bundle.loadString('assets/content/tracing/numbers.json');
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    return TracingContent.fromJson(json);
+  }
+
+  /// Letters and numbers merged into one glyph map, since the tracing
+  /// activity (queue, matcher, screen) treats any glyph id the same way
+  /// regardless of which JSON file it came from.
+  Future<TracingContent> loadAll() async {
+    final letters = await loadLetters();
+    final numbers = await loadNumbers();
+    return TracingContent({...letters.glyphs, ...numbers.glyphs});
+  }
 }

@@ -376,6 +376,13 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       await repository
           .recordStickerEarned(sticker.id, ref.read(engineClockProvider)())
           .timeout(_finishGameStepTimeout);
+    } on TimeoutException catch (error) {
+      // Keep the built-in sticker and move on: see CLAUDE.md section 13,
+      // this must never leave the end of a game stuck.
+      debugPrint(
+        '[alphabet] _finishGameStepTimeout (${_finishGameStepTimeout.inSeconds}s) '
+        'fired: $error',
+      );
     } catch (_) {
       // Keep the built-in sticker and move on regardless of what failed.
     }

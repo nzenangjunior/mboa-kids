@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,23 +9,35 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../core/audio/audio_service.dart';
-import '../../core/content/models/alphabet_item.dart';
 import '../../core/rewards/intensity_level.dart';
+import '../../core/rewards/star_rating.dart';
+import '../../core/rewards/sticker_catalog.dart';
 import '../../core/tracing/tracing_glyph.dart';
 import '../../core/tracing/tracing_matcher.dart';
 import '../../core/tracing/tracing_queue.dart';
 import '../../shared/widgets/mascot_tap_target.dart';
+import '../rewards/bravo_result.dart';
 import 'tracing_canvas_painter.dart';
 
 const _minDistanceBetweenPoints = 0.012;
 const _successAdvanceDelay = Duration(milliseconds: 1600);
+const _replayDuration = Duration(milliseconds: 1400);
+
+/// The two passes every letter/number goes through (CLAUDE.md section 10):
+/// first with the dotted guide, then again from memory to reinforce it.
+enum _TracingStage { guided, unguided }
 
 /// Finger-tracing activity (CLAUDE.md section 10, step 6): a dotted guide
 /// with a start dot and a direction arrow per stroke, wide-tolerance
 /// matching so a 4-year-old's finger can succeed, and no punishment for a
-/// miss — the child just keeps drawing until it's good enough. Only
-/// already-recognized letters are offered, except the first name, which is
-/// always traceable (CLAUDE.md section 7).
+/// miss — a failed attempt just replays the stroke and the child keeps
+/// drawing until it's good enough. Only already-recognized letters are
+/// offered, except the first name, which is always traceable; numbers 1-5
+/// are offered unconditionally for now (no numbers game exists yet to
+/// gate them the same way). Each item is traced once with the guide, then
+/// once more without it; a successful pass is recorded in the shared
+/// per-item progression (the same one the recognition games use) and the
+/// activity ends with stars and a sticker, exactly like the alphabet game.
 class TracingGameScreen extends ConsumerStatefulWidget {
   const TracingGameScreen({super.key});
 
@@ -32,18 +45,29 @@ class TracingGameScreen extends ConsumerStatefulWidget {
   ConsumerState<TracingGameScreen> createState() => _TracingGameScreenState();
 }
 
-class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
-  List<AlphabetItem>? _queue;
+class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
+    with SingleTickerProviderStateMixin {
+  final _random = Random();
+
+  List<TracingQueueItem>? _queue;
   TracingContent? _tracingContent;
   int _index = 0;
   bool _loading = true;
   bool _success = false;
   bool _finished = false;
+  bool _replaying = false;
+  _TracingStage _stage = _TracingStage.guided;
+
+  bool _itemHadFailedAttempt = false;
+  DateTime? _itemStartFirstAcquiredAt;
+  int _tracedFirstTryCount = 0;
+  final List<String> _newlyAcquiredGlyphs = [];
 
   final List<List<Offset>> _drawnStrokes = [];
 
   Timer? _advanceTimer;
   late final ConfettiController _confetti;
+  late final AnimationController _replayController;
 
   /// Cached the first time it resolves, so [dispose] can stop it without
   /// touching `ref` (Riverpod forbids `ref.read` once a widget is being
@@ -55,6 +79,8 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
   void initState() {
     super.initState();
     _confetti = ConfettiController(duration: const Duration(seconds: 2));
+    _replayController = AnimationController(vsync: this, duration: _replayDuration)
+      ..addStatusListener(_onReplayStatusChanged);
     _load();
   }
 
@@ -62,25 +88,34 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
   void dispose() {
     _advanceTimer?.cancel();
     _confetti.dispose();
+    _replayController.dispose();
     unawaited(_audio?.stop());
     super.dispose();
+  }
+
+  void _onReplayStatusChanged(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted) {
+      setState(() => _replaying = false);
+    }
   }
 
   Future<void> _load() async {
     final world = ref.read(worldProvider);
     final tracingContent = await ref.read(tracingContentProvider.future);
     final alphabet = await ref.read(alphabetContentProvider(world).future);
+    final numbers = await ref.read(numbersContentProvider(world).future);
     final repository = ref.read(progressRepositoryProvider);
     final states = await repository.statesFor(
       alphabet.items.map((item) => item.id).toList(),
     );
     final firstName = ref.read(childFirstNameProvider);
 
-    final queue = buildTracingQueue(
+    final queue = buildFullTracingQueue(
       alphabetItems: alphabet.items,
       states: states,
       firstName: firstName,
-      hasTracingData: (glyph) => tracingContent[glyph] != null,
+      numbersContent: numbers,
+      hasTracingData: (glyphKey) => tracingContent[glyphKey] != null,
     );
 
     if (!mounted) return;
@@ -91,7 +126,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
       _finished = queue.isEmpty;
     });
     if (queue.isNotEmpty) {
-      unawaited(_playPromptForCurrent());
+      unawaited(_prepareAndPromptCurrentItem());
     }
   }
 
@@ -99,6 +134,20 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
     final audio = await ref.read(audioServiceProvider(world).future);
     _audio = audio;
     return audio;
+  }
+
+  /// Captures the item's progress snapshot before this attempt (to detect
+  /// a newly-`acquis` item later) and speaks the prompt for it.
+  Future<void> _prepareAndPromptCurrentItem() async {
+    final item = _queue![_index];
+    try {
+      final repository = ref.read(progressRepositoryProvider);
+      final snapshot = await repository.snapshotFor(item.id);
+      _itemStartFirstAcquiredAt = snapshot.firstAcquiredAt;
+    } catch (_) {
+      _itemStartFirstAcquiredAt = null;
+    }
+    await _playPromptForCurrent();
   }
 
   Future<void> _playPromptForCurrent() async {
@@ -114,7 +163,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
   }
 
   void _addPoint(Offset localPosition, Size box, {required bool newStroke}) {
-    if (_success || box.width == 0 || box.height == 0) return;
+    if (_success || _replaying || box.width == 0 || box.height == 0) return;
     final normalized = Offset(
       (localPosition.dx / box.width).clamp(0.0, 1.0),
       (localPosition.dy / box.height).clamp(0.0, 1.0),
@@ -133,16 +182,36 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
   }
 
   void _onPanEnd() {
-    if (_success) return;
-    final glyph = _tracingContent![_queue![_index].glyph];
+    if (_success || _replaying) return;
+    final glyph = _tracingContent![_queue![_index].glyphKey];
     if (glyph == null) return;
     final allPoints = [for (final stroke in _drawnStrokes) ...stroke];
-    if (!isGoodTrace(glyph: glyph, drawnPoints: allPoints)) return;
+    final tolerance = ref.read(tracingToleranceProvider);
+    if (!isGoodTrace(glyph: glyph, drawnPoints: allPoints, tolerance: tolerance)) {
+      _startReplay();
+      return;
+    }
 
     setState(() => _success = true);
     unawaited(_playSuccessAudio());
     _advanceTimer?.cancel();
-    _advanceTimer = Timer(_successAdvanceDelay, _goToNext);
+    _advanceTimer = Timer(_successAdvanceDelay, _onStageSucceeded);
+  }
+
+  /// A failed attempt is never a punishment (CLAUDE.md rule 5): the guide
+  /// (shown even in "sans guide" mode, just for this demo) plays a
+  /// traveling marker along the stroke and the prompt is replayed, then
+  /// the child simply tries again.
+  void _startReplay() {
+    _itemHadFailedAttempt = true;
+    setState(() {
+      _replaying = true;
+      _drawnStrokes.clear();
+    });
+    unawaited(_playPromptForCurrent());
+    _replayController
+      ..reset()
+      ..forward();
   }
 
   Future<void> _playSuccessAudio() async {
@@ -157,31 +226,104 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
     }
   }
 
-  void _goToNext() {
+  void _onStageSucceeded() {
+    if (!mounted) return;
+    if (_stage == _TracingStage.guided) {
+      setState(() {
+        _stage = _TracingStage.unguided;
+        _success = false;
+        _drawnStrokes.clear();
+      });
+      unawaited(_playPromptForCurrent());
+      return;
+    }
+    unawaited(_recordItemCompleted());
+  }
+
+  /// The unguided pass just succeeded: this item is fully done. Recorded
+  /// in the same per-item progression the recognition games use (CLAUDE.md
+  /// section 10: "comme le jeu de l'alphabet").
+  Future<void> _recordItemCompleted() async {
+    final item = _queue![_index];
+    final firstTry = !_itemHadFailedAttempt;
+    try {
+      final repository = ref.read(progressRepositoryProvider);
+      final updated = await repository.recordAnswer(
+        itemId: item.id,
+        correct: true,
+        firstTry: firstTry,
+        today: ref.read(engineClockProvider)(),
+      );
+      if (firstTry) _tracedFirstTryCount++;
+      if (_itemStartFirstAcquiredAt == null && updated.firstAcquiredAt != null) {
+        _newlyAcquiredGlyphs.add(item.glyphKey);
+      }
+    } catch (_) {
+      // Recording failing must never block the activity from moving on.
+    }
+    _goToNextQueueItem();
+  }
+
+  void _goToNextQueueItem() {
     if (!mounted) return;
     if (_index + 1 >= _queue!.length) {
       setState(() => _finished = true);
-      unawaited(_playFinishedAudio());
+      unawaited(_finishActivity());
       return;
     }
     setState(() {
       _index++;
+      _stage = _TracingStage.guided;
       _success = false;
+      _itemHadFailedAttempt = false;
       _drawnStrokes.clear();
     });
-    unawaited(_playPromptForCurrent());
+    unawaited(_prepareAndPromptCurrentItem());
   }
 
-  Future<void> _playFinishedAudio() async {
+  /// How long to wait on the sticker catalog and the database write
+  /// before giving up on them (mirrors the alphabet game's same timeout
+  /// and the same reasoning: finishing matters more than waiting
+  /// indefinitely on either, CLAUDE.md section 13).
+  static const _finishActivityStepTimeout = Duration(seconds: 4);
+  static const _fallbackSticker = GameSticker(id: 'sticker.fallback', emoji: '⭐');
+
+  Future<void> _finishActivity() async {
     final intensity = await ref.read(intensityProvider.future);
     if (intensity != IntensityLevel.calme) {
       _confetti.play();
     }
+
+    final repository = ref.read(progressRepositoryProvider);
+    var sticker = _fallbackSticker;
     try {
-      final world = ref.read(worldProvider);
-      final audio = await _audioFor(world);
-      await audio.playPraise();
-    } catch (_) {}
+      final catalog = await ref
+          .read(stickerCatalogListProvider.future)
+          .timeout(_finishActivityStepTimeout);
+      sticker = pickRandomSticker(catalog, _random);
+      await repository
+          .recordStickerEarned(sticker.id, ref.read(engineClockProvider)())
+          .timeout(_finishActivityStepTimeout);
+    } on TimeoutException catch (error) {
+      // Keep the built-in sticker and move on: see CLAUDE.md section 13,
+      // this must never leave the end of the activity stuck.
+      debugPrint(
+        '[tracing] _finishActivityStepTimeout (${_finishActivityStepTimeout.inSeconds}s) '
+        'fired: $error',
+      );
+    } catch (_) {
+      // Keep the built-in sticker and move on regardless of what failed.
+    }
+
+    if (!mounted) return;
+    context.go(
+      '/bravo',
+      extra: BravoResult(
+        stars: starsForTracingFirstTry(_tracedFirstTryCount, _queue!.length),
+        gameSticker: sticker,
+        newlyAcquiredLetterGlyphs: _newlyAcquiredGlyphs,
+      ),
+    );
   }
 
   @override
@@ -190,11 +332,11 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_finished) {
-      return _buildFinished(context);
+      return _buildEmptyQueue(context);
     }
 
     final item = _queue![_index];
-    final glyph = _tracingContent![item.glyph];
+    final glyph = _tracingContent![item.glyphKey];
 
     return Scaffold(
       body: SafeArea(
@@ -232,12 +374,18 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
                                     newStroke: false,
                                   ),
                                   onPanEnd: (_) => _onPanEnd(),
-                                  child: CustomPaint(
-                                    size: box,
-                                    painter: TracingCanvasPainter(
-                                      glyph: glyph,
-                                      drawnStrokes: _drawnStrokes,
-                                      success: _success,
+                                  child: AnimatedBuilder(
+                                    animation: _replayController,
+                                    builder: (context, _) => CustomPaint(
+                                      size: box,
+                                      painter: TracingCanvasPainter(
+                                        glyph: glyph,
+                                        drawnStrokes: _drawnStrokes,
+                                        success: _success,
+                                        showGuide: _stage == _TracingStage.guided,
+                                        replayProgress:
+                                            _replaying ? _replayController.value : null,
+                                      ),
                                     ),
                                   ),
                                 );
@@ -254,33 +402,16 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen> {
     );
   }
 
-  Widget _buildFinished(BuildContext context) {
+  /// Nothing is eligible yet (e.g. a brand-new profile with no first name
+  /// and no recognized letters). Not a real completion, so it goes
+  /// straight home rather than through the Bravo screen.
+  Widget _buildEmptyQueue(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.star, color: MboaKidsTheme.pink, size: 96),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => context.go('/'),
-                  child: const Text('Accueil', style: TextStyle(fontSize: 20)),
-                ),
-              ],
-            ),
-          ),
-          ConfettiWidget(
-            confettiController: _confetti,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            numberOfParticles: 24,
-            maxBlastForce: 20,
-            minBlastForce: 8,
-          ),
-        ],
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () => context.go('/'),
+          child: const Text('Accueil', style: TextStyle(fontSize: 20)),
+        ),
       ),
     );
   }

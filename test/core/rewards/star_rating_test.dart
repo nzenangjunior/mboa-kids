@@ -18,4 +18,25 @@ void main() {
       expect(starsForFirstTryCorrect(2), 1);
     });
   });
+
+  group('starsForTracingFirstTry', () {
+    test('80% or more first-try gives 3 stars', () {
+      expect(starsForTracingFirstTry(8, 10), 3);
+      expect(starsForTracingFirstTry(4, 5), 3);
+    });
+
+    test('40% to 79% first-try gives 2 stars', () {
+      expect(starsForTracingFirstTry(4, 10), 2);
+      expect(starsForTracingFirstTry(2, 5), 2);
+    });
+
+    test('under 40% first-try gives 1 star (never 0)', () {
+      expect(starsForTracingFirstTry(0, 10), 1);
+      expect(starsForTracingFirstTry(1, 5), 1);
+    });
+
+    test('an empty activity never gives 0 stars', () {
+      expect(starsForTracingFirstTry(0, 0), 1);
+    });
+  });
 }

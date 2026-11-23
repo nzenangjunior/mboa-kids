@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mboa_kids/core/content/models/alphabet_item.dart';
+import 'package:mboa_kids/core/content/models/number_item.dart';
 import 'package:mboa_kids/core/content/models/word_ref.dart';
 import 'package:mboa_kids/core/progress/item_state.dart';
 import 'package:mboa_kids/core/tracing/tracing_queue.dart';
@@ -92,5 +93,80 @@ void main() {
     );
 
     expect(queue.map((i) => i.glyph), ['A']);
+  });
+
+  group('buildNumberTracingQueue', () {
+    const numbers = NumbersContent(
+      world: 'fr',
+      recognize: [NumberTier(0, 20)],
+      countObjectsMax: 20,
+      writeMax: 5,
+      countByTensMax: 100,
+    );
+
+    test('every digit up to writeMax with tracing data is included, in order', () {
+      final queue = buildNumberTracingQueue(
+        numbersContent: numbers,
+        hasTracingData: (glyph) => true,
+      );
+
+      expect(queue.map((i) => i.value), [1, 2, 3, 4, 5]);
+      expect(queue.first.id, 'fr.number.1');
+    });
+
+    test('a digit with no tracing data yet is skipped', () {
+      final queue = buildNumberTracingQueue(
+        numbersContent: numbers,
+        hasTracingData: (glyph) => glyph != '3',
+      );
+
+      expect(queue.map((i) => i.value), [1, 2, 4, 5]);
+    });
+
+    test('digits beyond writeMax are never offered, even with tracing data', () {
+      const wide = NumbersContent(
+        world: 'fr',
+        recognize: [NumberTier(0, 20)],
+        countObjectsMax: 20,
+        writeMax: 2,
+        countByTensMax: 100,
+      );
+
+      final queue = buildNumberTracingQueue(
+        numbersContent: wide,
+        hasTracingData: (glyph) => true,
+      );
+
+      expect(queue.map((i) => i.value), [1, 2]);
+    });
+  });
+
+  group('buildFullTracingQueue', () {
+    const numbers = NumbersContent(
+      world: 'fr',
+      recognize: [NumberTier(0, 20)],
+      countObjectsMax: 20,
+      writeMax: 3,
+      countByTensMax: 100,
+    );
+
+    test('letters (name first) come before numbers', () {
+      final queue = buildFullTracingQueue(
+        alphabetItems: alphabet,
+        states: const {'en.letter.C': ItemState.acquis},
+        firstName: 'A',
+        numbersContent: numbers,
+        hasTracingData: (glyph) => true,
+      );
+
+      expect(queue.map((i) => i.glyphKey), ['A', 'C', '1', '2', '3']);
+      expect(queue.map((i) => i.id), [
+        'en.letter.A',
+        'en.letter.C',
+        'fr.number.1',
+        'fr.number.2',
+        'fr.number.3',
+      ]);
+    });
   });
 }

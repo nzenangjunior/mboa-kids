@@ -9,6 +9,7 @@ import '../core/audio/speech_engine.dart';
 import '../core/audio/tts_fallback_audio_service.dart';
 import '../core/content/content_loader.dart';
 import '../core/content/models/alphabet_item.dart';
+import '../core/content/models/number_item.dart';
 import '../core/progress/progress_repository.dart';
 import '../core/progress/progress_repository_io.dart'
     if (dart.library.js_interop) '../core/progress/progress_repository_web.dart';
@@ -17,6 +18,7 @@ import '../core/rewards/intensity_level.dart';
 import '../core/rewards/sticker_catalog.dart';
 import '../core/tracing/tracing_glyph.dart';
 import '../core/tracing/tracing_loader.dart';
+import '../core/tracing/tracing_matcher.dart';
 
 /// The world (fr/en) chosen for the current session. Never changed mid
 /// game: CLAUDE.md section 2.6 says the two worlds are never mixed within
@@ -56,14 +58,26 @@ final alphabetContentProvider = FutureProvider.family<AlphabetContent, String>(
   (ref, world) => ref.read(contentLoaderProvider).loadAlphabet(world),
 );
 
+final numbersContentProvider = FutureProvider.family<NumbersContent, String>(
+  (ref, world) => ref.read(contentLoaderProvider).loadNumbers(world),
+);
+
 final tracingLoaderProvider = Provider<TracingLoader>(
   (ref) => TracingLoader(rootBundle),
 );
 
-/// Key points per glyph (CLAUDE.md section 4), shared by both worlds since
-/// a letter's shape doesn't depend on fr/en.
+/// Key points per glyph (CLAUDE.md section 4), letters and numbers merged,
+/// shared by both worlds since a glyph's shape doesn't depend on fr/en.
 final tracingContentProvider = FutureProvider<TracingContent>(
-  (ref) => ref.read(tracingLoaderProvider).loadLetters(),
+  (ref) => ref.read(tracingLoaderProvider).loadAll(),
+);
+
+/// How closely a traced letter/number must match its guide to count as
+/// good (CLAUDE.md section 10: "tolérance réglable"). Centralized here
+/// instead of a magic number at each call site, so it is one place to
+/// tune — e.g. a future parent setting for a stricter or looser mode.
+final tracingToleranceProvider = Provider<TracingTolerance>(
+  (ref) => defaultTracingTolerance,
 );
 
 /// The child's first name, always traceable regardless of progression
@@ -111,6 +125,7 @@ final audioServiceProvider = FutureProvider.family<AudioService, String>((
   world,
 ) async {
   final alphabet = await ref.watch(alphabetContentProvider(world).future);
+  final numbers = await ref.watch(numbersContentProvider(world).future);
   final locale = world == 'en' ? 'en-GB' : 'fr-FR';
 
   final itemAudioPaths = <String, String>{};
@@ -118,6 +133,11 @@ final audioServiceProvider = FutureProvider.family<AudioService, String>((
   for (final item in alphabet.items) {
     itemAudioPaths[item.id] = item.audio;
     itemSpokenText[item.id] = item.glyph;
+  }
+  for (var value = 0; value <= numbers.maxRecognizedValue; value++) {
+    final item = numbers.itemFor(value);
+    itemAudioPaths[item.id] = item.audio;
+    itemSpokenText[item.id] = item.value.toString();
   }
 
   final fallback = TtsFallbackAudioService(
