@@ -93,6 +93,37 @@ List<TracingQueueItem> buildFullTracingQueue({
   ];
 }
 
+/// Builds the tracing queue for just the child's first name (CLAUDE.md
+/// section 7: "tracé dès le début"), the special first level on the
+/// tracing path — reuses [buildTracingQueue] with no other letters in
+/// scope, so only the name's own letters come through.
+List<TracingQueueItem> buildTracingQueueForName({
+  required List<AlphabetItem> alphabetItems,
+  required String firstName,
+  required bool Function(String glyph) hasTracingData,
+}) {
+  final items = buildTracingQueue(
+    alphabetItems: alphabetItems,
+    states: const {},
+    firstName: firstName,
+    hasTracingData: hasTracingData,
+  );
+  return [for (final item in items) TracingQueueItem(id: item.id, glyphKey: item.glyph)];
+}
+
+/// Builds the tracing queue for one pack of letters (a level on the
+/// tracing path, CLAUDE.md section 10), skipping any glyph with no
+/// tracing data yet.
+List<TracingQueueItem> buildTracingQueueForGlyphs({
+  required List<AlphabetItem> packItems,
+  required bool Function(String glyph) hasTracingData,
+}) {
+  return [
+    for (final item in packItems)
+      if (hasTracingData(item.glyph)) TracingQueueItem(id: item.id, glyphKey: item.glyph),
+  ];
+}
+
 /// At most this many items are traced per session (CLAUDE.md section 10).
 const tracingMaxItemsPerSession = 5;
 

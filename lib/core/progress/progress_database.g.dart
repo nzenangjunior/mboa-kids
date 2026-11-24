@@ -997,8 +997,22 @@ class $SettingsRowsTable extends SettingsRows
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _worldMeta = const VerificationMeta('world');
   @override
-  List<GeneratedColumn> get $columns => [id, intensity, tracingQueueCursor];
+  late final GeneratedColumn<String> world = GeneratedColumn<String>(
+    'world',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    intensity,
+    tracingQueueCursor,
+    world,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1029,6 +1043,12 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('world')) {
+      context.handle(
+        _worldMeta,
+        world.isAcceptableOrUnknown(data['world']!, _worldMeta),
+      );
+    }
     return context;
   }
 
@@ -1050,6 +1070,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}tracing_queue_cursor'],
       ),
+      world: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}world'],
+      ),
     );
   }
 
@@ -1070,10 +1094,16 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   /// number is needed, not just the id, because a repeated letter in the
   /// name (e.g. the two E's in ESTRELLA) would otherwise be ambiguous.
   final String? tracingQueueCursor;
+
+  /// The last chosen world ('fr'/'en'), remembered across launches
+  /// (CLAUDE.md section 10: "le monde choisi est mémorisé"). Null means
+  /// never chosen yet — the app falls back to its own default then.
+  final String? world;
   const SettingsRow({
     required this.id,
     required this.intensity,
     this.tracingQueueCursor,
+    this.world,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1082,6 +1112,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['intensity'] = Variable<String>(intensity);
     if (!nullToAbsent || tracingQueueCursor != null) {
       map['tracing_queue_cursor'] = Variable<String>(tracingQueueCursor);
+    }
+    if (!nullToAbsent || world != null) {
+      map['world'] = Variable<String>(world);
     }
     return map;
   }
@@ -1093,6 +1126,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       tracingQueueCursor: tracingQueueCursor == null && nullToAbsent
           ? const Value.absent()
           : Value(tracingQueueCursor),
+      world: world == null && nullToAbsent
+          ? const Value.absent()
+          : Value(world),
     );
   }
 
@@ -1107,6 +1143,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       tracingQueueCursor: serializer.fromJson<String?>(
         json['tracingQueueCursor'],
       ),
+      world: serializer.fromJson<String?>(json['world']),
     );
   }
   @override
@@ -1116,6 +1153,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'id': serializer.toJson<int>(id),
       'intensity': serializer.toJson<String>(intensity),
       'tracingQueueCursor': serializer.toJson<String?>(tracingQueueCursor),
+      'world': serializer.toJson<String?>(world),
     };
   }
 
@@ -1123,12 +1161,14 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     int? id,
     String? intensity,
     Value<String?> tracingQueueCursor = const Value.absent(),
+    Value<String?> world = const Value.absent(),
   }) => SettingsRow(
     id: id ?? this.id,
     intensity: intensity ?? this.intensity,
     tracingQueueCursor: tracingQueueCursor.present
         ? tracingQueueCursor.value
         : this.tracingQueueCursor,
+    world: world.present ? world.value : this.world,
   );
   SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
     return SettingsRow(
@@ -1137,6 +1177,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       tracingQueueCursor: data.tracingQueueCursor.present
           ? data.tracingQueueCursor.value
           : this.tracingQueueCursor,
+      world: data.world.present ? data.world.value : this.world,
     );
   }
 
@@ -1145,46 +1186,53 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return (StringBuffer('SettingsRow(')
           ..write('id: $id, ')
           ..write('intensity: $intensity, ')
-          ..write('tracingQueueCursor: $tracingQueueCursor')
+          ..write('tracingQueueCursor: $tracingQueueCursor, ')
+          ..write('world: $world')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, intensity, tracingQueueCursor);
+  int get hashCode => Object.hash(id, intensity, tracingQueueCursor, world);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SettingsRow &&
           other.id == this.id &&
           other.intensity == this.intensity &&
-          other.tracingQueueCursor == this.tracingQueueCursor);
+          other.tracingQueueCursor == this.tracingQueueCursor &&
+          other.world == this.world);
 }
 
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<int> id;
   final Value<String> intensity;
   final Value<String?> tracingQueueCursor;
+  final Value<String?> world;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
     this.tracingQueueCursor = const Value.absent(),
+    this.world = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
     this.tracingQueueCursor = const Value.absent(),
+    this.world = const Value.absent(),
   });
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
     Expression<String>? intensity,
     Expression<String>? tracingQueueCursor,
+    Expression<String>? world,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (intensity != null) 'intensity': intensity,
       if (tracingQueueCursor != null)
         'tracing_queue_cursor': tracingQueueCursor,
+      if (world != null) 'world': world,
     });
   }
 
@@ -1192,11 +1240,13 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<int>? id,
     Value<String>? intensity,
     Value<String?>? tracingQueueCursor,
+    Value<String?>? world,
   }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
       intensity: intensity ?? this.intensity,
       tracingQueueCursor: tracingQueueCursor ?? this.tracingQueueCursor,
+      world: world ?? this.world,
     );
   }
 
@@ -1212,6 +1262,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     if (tracingQueueCursor.present) {
       map['tracing_queue_cursor'] = Variable<String>(tracingQueueCursor.value);
     }
+    if (world.present) {
+      map['world'] = Variable<String>(world.value);
+    }
     return map;
   }
 
@@ -1220,7 +1273,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     return (StringBuffer('SettingsRowsCompanion(')
           ..write('id: $id, ')
           ..write('intensity: $intensity, ')
-          ..write('tracingQueueCursor: $tracingQueueCursor')
+          ..write('tracingQueueCursor: $tracingQueueCursor, ')
+          ..write('world: $world')
           ..write(')'))
         .toString();
   }
@@ -1447,6 +1501,225 @@ class TracingGuidedSuccessDaysCompanion
   }
 }
 
+class $LevelBestStarRowsTable extends LevelBestStarRows
+    with TableInfo<$LevelBestStarRowsTable, LevelBestStarRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LevelBestStarRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _levelIdMeta = const VerificationMeta(
+    'levelId',
+  );
+  @override
+  late final GeneratedColumn<String> levelId = GeneratedColumn<String>(
+    'level_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bestStarsMeta = const VerificationMeta(
+    'bestStars',
+  );
+  @override
+  late final GeneratedColumn<int> bestStars = GeneratedColumn<int>(
+    'best_stars',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [levelId, bestStars];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'level_best_star_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LevelBestStarRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('level_id')) {
+      context.handle(
+        _levelIdMeta,
+        levelId.isAcceptableOrUnknown(data['level_id']!, _levelIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_levelIdMeta);
+    }
+    if (data.containsKey('best_stars')) {
+      context.handle(
+        _bestStarsMeta,
+        bestStars.isAcceptableOrUnknown(data['best_stars']!, _bestStarsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bestStarsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {levelId};
+  @override
+  LevelBestStarRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LevelBestStarRow(
+      levelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level_id'],
+      )!,
+      bestStars: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}best_stars'],
+      )!,
+    );
+  }
+
+  @override
+  $LevelBestStarRowsTable createAlias(String alias) {
+    return $LevelBestStarRowsTable(attachedDatabase, alias);
+  }
+}
+
+class LevelBestStarRow extends DataClass
+    implements Insertable<LevelBestStarRow> {
+  final String levelId;
+  final int bestStars;
+  const LevelBestStarRow({required this.levelId, required this.bestStars});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['level_id'] = Variable<String>(levelId);
+    map['best_stars'] = Variable<int>(bestStars);
+    return map;
+  }
+
+  LevelBestStarRowsCompanion toCompanion(bool nullToAbsent) {
+    return LevelBestStarRowsCompanion(
+      levelId: Value(levelId),
+      bestStars: Value(bestStars),
+    );
+  }
+
+  factory LevelBestStarRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LevelBestStarRow(
+      levelId: serializer.fromJson<String>(json['levelId']),
+      bestStars: serializer.fromJson<int>(json['bestStars']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'levelId': serializer.toJson<String>(levelId),
+      'bestStars': serializer.toJson<int>(bestStars),
+    };
+  }
+
+  LevelBestStarRow copyWith({String? levelId, int? bestStars}) =>
+      LevelBestStarRow(
+        levelId: levelId ?? this.levelId,
+        bestStars: bestStars ?? this.bestStars,
+      );
+  LevelBestStarRow copyWithCompanion(LevelBestStarRowsCompanion data) {
+    return LevelBestStarRow(
+      levelId: data.levelId.present ? data.levelId.value : this.levelId,
+      bestStars: data.bestStars.present ? data.bestStars.value : this.bestStars,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LevelBestStarRow(')
+          ..write('levelId: $levelId, ')
+          ..write('bestStars: $bestStars')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(levelId, bestStars);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LevelBestStarRow &&
+          other.levelId == this.levelId &&
+          other.bestStars == this.bestStars);
+}
+
+class LevelBestStarRowsCompanion extends UpdateCompanion<LevelBestStarRow> {
+  final Value<String> levelId;
+  final Value<int> bestStars;
+  final Value<int> rowid;
+  const LevelBestStarRowsCompanion({
+    this.levelId = const Value.absent(),
+    this.bestStars = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LevelBestStarRowsCompanion.insert({
+    required String levelId,
+    required int bestStars,
+    this.rowid = const Value.absent(),
+  }) : levelId = Value(levelId),
+       bestStars = Value(bestStars);
+  static Insertable<LevelBestStarRow> custom({
+    Expression<String>? levelId,
+    Expression<int>? bestStars,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (levelId != null) 'level_id': levelId,
+      if (bestStars != null) 'best_stars': bestStars,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LevelBestStarRowsCompanion copyWith({
+    Value<String>? levelId,
+    Value<int>? bestStars,
+    Value<int>? rowid,
+  }) {
+    return LevelBestStarRowsCompanion(
+      levelId: levelId ?? this.levelId,
+      bestStars: bestStars ?? this.bestStars,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (levelId.present) {
+      map['level_id'] = Variable<String>(levelId.value);
+    }
+    if (bestStars.present) {
+      map['best_stars'] = Variable<int>(bestStars.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LevelBestStarRowsCompanion(')
+          ..write('levelId: $levelId, ')
+          ..write('bestStars: $bestStars, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ProgressDatabase extends GeneratedDatabase {
   _$ProgressDatabase(QueryExecutor e) : super(e);
   $ProgressDatabaseManager get managers => $ProgressDatabaseManager(this);
@@ -1460,6 +1733,8 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
   late final $SettingsRowsTable settingsRows = $SettingsRowsTable(this);
   late final $TracingGuidedSuccessDaysTable tracingGuidedSuccessDays =
       $TracingGuidedSuccessDaysTable(this);
+  late final $LevelBestStarRowsTable levelBestStarRows =
+      $LevelBestStarRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1470,6 +1745,7 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
     earnedStickerRows,
     settingsRows,
     tracingGuidedSuccessDays,
+    levelBestStarRows,
   ];
 }
 
@@ -2092,12 +2368,14 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<int> id,
       Value<String> intensity,
       Value<String?> tracingQueueCursor,
+      Value<String?> world,
     });
 typedef $$SettingsRowsTableUpdateCompanionBuilder =
     SettingsRowsCompanion Function({
       Value<int> id,
       Value<String> intensity,
       Value<String?> tracingQueueCursor,
+      Value<String?> world,
     });
 
 class $$SettingsRowsTableFilterComposer
@@ -2121,6 +2399,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get tracingQueueCursor => $composableBuilder(
     column: $table.tracingQueueCursor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get world => $composableBuilder(
+    column: $table.world,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2148,6 +2431,11 @@ class $$SettingsRowsTableOrderingComposer
     column: $table.tracingQueueCursor,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get world => $composableBuilder(
+    column: $table.world,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsRowsTableAnnotationComposer
@@ -2169,6 +2457,9 @@ class $$SettingsRowsTableAnnotationComposer
     column: $table.tracingQueueCursor,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get world =>
+      $composableBuilder(column: $table.world, builder: (column) => column);
 }
 
 class $$SettingsRowsTableTableManager
@@ -2207,20 +2498,24 @@ class $$SettingsRowsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> intensity = const Value.absent(),
                 Value<String?> tracingQueueCursor = const Value.absent(),
+                Value<String?> world = const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 intensity: intensity,
                 tracingQueueCursor: tracingQueueCursor,
+                world: world,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> intensity = const Value.absent(),
                 Value<String?> tracingQueueCursor = const Value.absent(),
+                Value<String?> world = const Value.absent(),
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 intensity: intensity,
                 tracingQueueCursor: tracingQueueCursor,
+                world: world,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2430,6 +2725,171 @@ typedef $$TracingGuidedSuccessDaysTableProcessedTableManager =
       TracingGuidedSuccessDay,
       PrefetchHooks Function()
     >;
+typedef $$LevelBestStarRowsTableCreateCompanionBuilder =
+    LevelBestStarRowsCompanion Function({
+      required String levelId,
+      required int bestStars,
+      Value<int> rowid,
+    });
+typedef $$LevelBestStarRowsTableUpdateCompanionBuilder =
+    LevelBestStarRowsCompanion Function({
+      Value<String> levelId,
+      Value<int> bestStars,
+      Value<int> rowid,
+    });
+
+class $$LevelBestStarRowsTableFilterComposer
+    extends Composer<_$ProgressDatabase, $LevelBestStarRowsTable> {
+  $$LevelBestStarRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get levelId => $composableBuilder(
+    column: $table.levelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bestStars => $composableBuilder(
+    column: $table.bestStars,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LevelBestStarRowsTableOrderingComposer
+    extends Composer<_$ProgressDatabase, $LevelBestStarRowsTable> {
+  $$LevelBestStarRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get levelId => $composableBuilder(
+    column: $table.levelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bestStars => $composableBuilder(
+    column: $table.bestStars,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LevelBestStarRowsTableAnnotationComposer
+    extends Composer<_$ProgressDatabase, $LevelBestStarRowsTable> {
+  $$LevelBestStarRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get levelId =>
+      $composableBuilder(column: $table.levelId, builder: (column) => column);
+
+  GeneratedColumn<int> get bestStars =>
+      $composableBuilder(column: $table.bestStars, builder: (column) => column);
+}
+
+class $$LevelBestStarRowsTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDatabase,
+          $LevelBestStarRowsTable,
+          LevelBestStarRow,
+          $$LevelBestStarRowsTableFilterComposer,
+          $$LevelBestStarRowsTableOrderingComposer,
+          $$LevelBestStarRowsTableAnnotationComposer,
+          $$LevelBestStarRowsTableCreateCompanionBuilder,
+          $$LevelBestStarRowsTableUpdateCompanionBuilder,
+          (
+            LevelBestStarRow,
+            BaseReferences<
+              _$ProgressDatabase,
+              $LevelBestStarRowsTable,
+              LevelBestStarRow
+            >,
+          ),
+          LevelBestStarRow,
+          PrefetchHooks Function()
+        > {
+  $$LevelBestStarRowsTableTableManager(
+    _$ProgressDatabase db,
+    $LevelBestStarRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LevelBestStarRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LevelBestStarRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LevelBestStarRowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> levelId = const Value.absent(),
+                Value<int> bestStars = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LevelBestStarRowsCompanion(
+                levelId: levelId,
+                bestStars: bestStars,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String levelId,
+                required int bestStars,
+                Value<int> rowid = const Value.absent(),
+              }) => LevelBestStarRowsCompanion.insert(
+                levelId: levelId,
+                bestStars: bestStars,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$LevelBestStarRowsTable, LevelBestStarRow>(table),
+                  BaseReferences<
+                    _$ProgressDatabase,
+                    $LevelBestStarRowsTable,
+                    LevelBestStarRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LevelBestStarRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDatabase,
+      $LevelBestStarRowsTable,
+      LevelBestStarRow,
+      $$LevelBestStarRowsTableFilterComposer,
+      $$LevelBestStarRowsTableOrderingComposer,
+      $$LevelBestStarRowsTableAnnotationComposer,
+      $$LevelBestStarRowsTableCreateCompanionBuilder,
+      $$LevelBestStarRowsTableUpdateCompanionBuilder,
+      (
+        LevelBestStarRow,
+        BaseReferences<
+          _$ProgressDatabase,
+          $LevelBestStarRowsTable,
+          LevelBestStarRow
+        >,
+      ),
+      LevelBestStarRow,
+      PrefetchHooks Function()
+    >;
 
 class $ProgressDatabaseManager {
   final _$ProgressDatabase _db;
@@ -2447,4 +2907,6 @@ class $ProgressDatabaseManager {
         _db,
         _db.tracingGuidedSuccessDays,
       );
+  $$LevelBestStarRowsTableTableManager get levelBestStarRows =>
+      $$LevelBestStarRowsTableTableManager(_db, _db.levelBestStarRows);
 }

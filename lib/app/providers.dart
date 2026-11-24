@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
@@ -7,9 +10,12 @@ import '../core/audio/clip_audio_service.dart';
 import '../core/audio/clip_player.dart';
 import '../core/audio/speech_engine.dart';
 import '../core/audio/tts_fallback_audio_service.dart';
+import '../core/content/alphabet_game_composer.dart';
 import '../core/content/content_loader.dart';
 import '../core/content/models/alphabet_item.dart';
 import '../core/content/models/number_item.dart';
+import '../core/progress/item_state.dart';
+import '../core/progress/level_path.dart';
 import '../core/progress/progress_repository.dart';
 import '../core/progress/progress_repository_io.dart'
     if (dart.library.js_interop) '../core/progress/progress_repository_web.dart';
@@ -82,7 +88,7 @@ final tracingToleranceProvider = Provider<TracingTolerance>(
 
 /// The child's first name, always traceable regardless of progression
 /// (CLAUDE.md section 7). There is no settings screen yet to set this from
-/// (that's étape 9's parent space); hardcoded for now the same way the
+/// (that's étape 10's parent space); hardcoded for now the same way the
 /// debug panel stands in for settings elsewhere in this app.
 final childFirstNameProvider = Provider<String>((ref) => 'Estrella');
 
@@ -96,19 +102,156 @@ final stickerCatalogListProvider = FutureProvider<List<GameSticker>>(
 
 /// Celebration intensity (CLAUDE.md section 8), persisted, `normal` by
 /// default. There is no settings screen yet to change it from (that's
-/// étape 9), so the debug panel exposes a temporary way to test it.
+/// étape 10), so the debug panel exposes a temporary way to test it.
 final intensityProvider = FutureProvider<IntensityLevel>(
   (ref) => ref.read(progressRepositoryProvider).intensity(),
 );
+
+/// How long a daily path session runs before stopping early with the
+/// "mascotte dort" screen (CLAUDE.md section 10), 10 minutes by default.
+/// Config only for now — there is no parent settings screen yet to make
+/// it adjustable (that's étape 10).
+final sessionDurationProvider = Provider<Duration>(
+  (ref) => const Duration(minutes: 10),
+);
+
+/// How long a level's best-stars lookup waits before giving up and
+/// showing 0 instead (CLAUDE.md section 13: a slow or stuck read must
+/// never freeze the whole path — the level still shows, just without its
+/// best score yet).
+const _levelStarsLookupTimeout = Duration(seconds: 3);
+
+Future<int> _bestStarsOrZero(ProgressRepository repository, String levelId) async {
+  try {
+    return await repository.bestStarsFor(levelId).timeout(_levelStarsLookupTimeout);
+  } catch (error) {
+    debugPrint('[levels] bestStarsFor("$levelId") timed out or failed: $error');
+    return 0;
+  }
+}
+
+/// Same reasoning as [_bestStarsOrZero]: every level still renders — with
+/// nothing marked as progressed yet — rather than the whole path hanging
+/// on one slow or stuck read.
+Future<Map<String, ItemState>> _statesOrEmpty(
+  ProgressRepository repository,
+  List<String> itemIds,
+) async {
+  try {
+    return await repository.statesFor(itemIds).timeout(_levelStarsLookupTimeout);
+  } catch (error) {
+    debugPrint('[levels] statesFor(...) timed out or failed: $error');
+    return const {};
+  }
+}
+
+/// One level on the alphabet island's path (CLAUDE.md section 10): 1
+/// level = 1 pack of letters, locked/open/done with its best stars.
+final alphabetLevelsProvider = FutureProvider.family<List<PackLevel>, String>((
+  ref,
+  world,
+) async {
+  final alphabet = await ref.watch(alphabetContentProvider(world).future);
+  final repository = ref.read(progressRepositoryProvider);
+  final startIds = startUnlockedAlphabetItemIds(world, alphabet.items);
+  final states = await _statesOrEmpty(repository, alphabet.items.map((i) => i.id).toList());
+
+  final packCount = ((alphabet.items.length - startIds.length) / alphabet.packSize).ceil();
+  final bestStarsByPack = <int, int>{};
+  for (var n = 1; n <= packCount; n++) {
+    bestStarsByPack[n] = await _bestStarsOrZero(repository, '$world.alphabet.pack$n');
+  }
+
+  return buildPackLevelPath(
+    allItemsInOrder: alphabet.items,
+    startUnlockedItemIds: startIds,
+    states: states,
+    packSize: alphabet.packSize,
+    bestStarsFor: (packNumber) => bestStarsByPack[packNumber] ?? 0,
+  );
+});
+
+/// One level on the tracing island's path: the special first-name level,
+/// then the same packs as the alphabet island, filtered to glyphs that
+/// already have tracing data (CLAUDE.md section 10).
+typedef TracingLevelView = ({
+  bool isNameLevel,
+  int? packNumber,
+  List<String> glyphs,
+  LevelState state,
+  int bestStars,
+});
+
+final tracingLevelsProvider = FutureProvider.family<List<TracingLevelView>, String>((
+  ref,
+  world,
+) async {
+  final alphabet = await ref.watch(alphabetContentProvider(world).future);
+  final tracingContent = await ref.watch(tracingContentProvider.future);
+  final repository = ref.read(progressRepositoryProvider);
+  final firstName = ref.read(childFirstNameProvider);
+  final startIds = startUnlockedAlphabetItemIds(world, alphabet.items);
+  final states = await _statesOrEmpty(repository, alphabet.items.map((i) => i.id).toList());
+
+  final itemIdByGlyph = {for (final item in alphabet.items) item.glyph: item.id};
+  final nameState = tracingNameLevelState(
+    firstName: firstName,
+    itemIdByGlyph: itemIdByGlyph,
+    states: states,
+  );
+  final nameBestStars = await _bestStarsOrZero(repository, '$world.tracing.name');
+
+  final packCount = ((alphabet.items.length - startIds.length) / alphabet.packSize).ceil();
+  final bestStarsByPack = <int, int>{};
+  for (var n = 1; n <= packCount; n++) {
+    bestStarsByPack[n] = await _bestStarsOrZero(repository, '$world.tracing.pack$n');
+  }
+
+  final packLevels = buildPackLevelPath(
+    allItemsInOrder: alphabet.items,
+    startUnlockedItemIds: startIds,
+    states: states,
+    packSize: alphabet.packSize,
+    bestStarsFor: (packNumber) => bestStarsByPack[packNumber] ?? 0,
+  ).where((level) => level.glyphs.every((glyph) => tracingContent[glyph] != null));
+
+  return [
+    (
+      isNameLevel: true,
+      packNumber: null,
+      glyphs: firstName.toUpperCase().split('').toSet().toList(),
+      state: nameState,
+      bestStars: nameBestStars,
+    ),
+    for (final level in packLevels)
+      (
+        isNameLevel: false,
+        packNumber: level.packNumber,
+        glyphs: level.glyphs,
+        state: level.state,
+        bestStars: level.bestStars,
+      ),
+  ];
+});
 
 const _promptSpokenText = {
   'fr': {
     'find_the_letter': 'Touche la lettre',
     'trace_the_letter': 'Trace la lettre',
+    'home_screen': 'Touche pour jouer !',
+    'island_map': 'Choisis une île',
+    'choose_level': 'Choisis un niveau',
+    'island_locked': 'Pas encore !',
+    'mascot_sleeping': 'La mascotte dort, à bientôt !',
   },
   'en': {
     'find_the_letter': 'Touch the letter',
     'trace_the_letter': 'Trace the letter',
+    'home_screen': 'Touch to play!',
+    'island_map': 'Choose an island',
+    'choose_level': 'Choose a level',
+    'island_locked': 'Not yet!',
+    'mascot_sleeping': 'The mascot is asleep, see you soon!',
   },
 };
 

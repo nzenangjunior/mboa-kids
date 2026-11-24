@@ -54,8 +54,25 @@ class SettingsRows extends Table {
   /// name (e.g. the two E's in ESTRELLA) would otherwise be ambiguous.
   TextColumn get tracingQueueCursor => text().nullable()();
 
+  /// The last chosen world ('fr'/'en'), remembered across launches
+  /// (CLAUDE.md section 10: "le monde choisi est mémorisé"). Null means
+  /// never chosen yet — the app falls back to its own default then.
+  TextColumn get world => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// The best star count ever reached on one level (CLAUDE.md section 10:
+/// each level on a path "garde ses meilleures étoiles obtenues"). A level
+/// id is e.g. `fr.alphabet.pack2` or `fr.tracing.name` — see
+/// `level_path.dart` for how these are built.
+class LevelBestStarRows extends Table {
+  TextColumn get levelId => text()();
+  IntColumn get bestStars => integer()();
+
+  @override
+  Set<Column> get primaryKey => {levelId};
 }
 
 /// Days on which an item was successfully traced with the guide
@@ -82,13 +99,14 @@ class TracingGuidedSuccessDays extends Table {
     EarnedStickerRows,
     SettingsRows,
     TracingGuidedSuccessDays,
+    LevelBestStarRows,
   ],
 )
 class ProgressDatabase extends _$ProgressDatabase {
   ProgressDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,6 +115,10 @@ class ProgressDatabase extends _$ProgressDatabase {
       if (from < 2) {
         await m.createTable(tracingGuidedSuccessDays);
         await m.addColumn(settingsRows, settingsRows.tracingQueueCursor);
+      }
+      if (from < 3) {
+        await m.addColumn(settingsRows, settingsRows.world);
+        await m.createTable(levelBestStarRows);
       }
     },
   );

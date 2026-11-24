@@ -230,4 +230,60 @@ void main() {
       ]);
     });
   });
+
+  group('buildTracingQueueForName', () {
+    test('only the name\'s own letters, repeats included, in order', () {
+      final queue = buildTracingQueueForName(
+        alphabetItems: alphabet,
+        firstName: 'ABBA',
+        hasTracingData: (glyph) => true,
+      );
+
+      expect(queue.map((i) => i.glyphKey), ['A', 'B', 'B', 'A']);
+    });
+
+    test('a glyph with no tracing data yet is skipped', () {
+      final queue = buildTracingQueueForName(
+        alphabetItems: alphabet,
+        firstName: 'AB',
+        hasTracingData: (glyph) => glyph != 'B',
+      );
+
+      expect(queue.map((i) => i.glyphKey), ['A']);
+    });
+
+    test('an empty name selects nothing', () {
+      final queue = buildTracingQueueForName(
+        alphabetItems: alphabet,
+        firstName: '',
+        hasTracingData: (glyph) => true,
+      );
+
+      expect(queue, isEmpty);
+    });
+  });
+
+  group('buildTracingQueueForGlyphs', () {
+    test('every item in the given pack, in order', () {
+      final pack = alphabet.where((i) => 'DEF'.contains(i.glyph)).toList();
+
+      final queue = buildTracingQueueForGlyphs(
+        packItems: pack,
+        hasTracingData: (glyph) => true,
+      );
+
+      expect(queue.map((i) => i.glyphKey), ['D', 'E', 'F']);
+    });
+
+    test('a glyph with no tracing data yet is skipped', () {
+      final pack = alphabet.where((i) => 'DEF'.contains(i.glyph)).toList();
+
+      final queue = buildTracingQueueForGlyphs(
+        packItems: pack,
+        hasTracingData: (glyph) => glyph != 'E',
+      );
+
+      expect(queue.map((i) => i.glyphKey), ['D', 'F']);
+    });
+  });
 }

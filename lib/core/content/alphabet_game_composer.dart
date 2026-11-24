@@ -8,9 +8,10 @@ import 'models/alphabet_item.dart';
 /// English start set (CLAUDE.md section 7): A-E begin directly in
 /// `aRevoir`, as already-known review material, rather than going
 /// through the normal pack-unlocking path. French doesn't have its
-/// discovery game implemented yet (deferred to étape 10), so for now it
-/// starts with nothing pre-known. Shared by the game screen and the debug
-/// panel so both agree on what "unlocked" means.
+/// discovery game implemented yet (CLAUDE.md section 10, Structure step —
+/// still outstanding), so for now it starts with nothing pre-known.
+/// Shared by the game screen and the debug panel so both agree on what
+/// "unlocked" means.
 Set<String> startUnlockedAlphabetItemIds(String world, List<AlphabetItem> items) {
   if (world != 'en') return const {};
   const startGlyphs = {'A', 'B', 'C', 'D', 'E'};
@@ -112,6 +113,56 @@ class AlphabetGameComposer {
       }
     }
 
+    return targets.map((target) => buildRoundFor(target, pool)).toList();
+  }
+
+  /// The items belonging to pack [packNumber] (1-based, CLAUDE.md section
+  /// 10: "1 niveau = 1 paquet du moteur"), empty if that pack doesn't
+  /// exist. Mirrors [packNumberFor]'s own grouping so a level on the path
+  /// always matches the game it launches.
+  List<AlphabetItem> itemsInPack({
+    required List<AlphabetItem> allItemsInOrder,
+    required Set<String> startUnlockedItemIds,
+    required int packNumber,
+  }) {
+    final newItems = allItemsInOrder
+        .where((i) => !startUnlockedItemIds.contains(i.id))
+        .toList();
+    final startIndex = (packNumber - 1) * packUnlocker.packSize;
+    if (startIndex < 0 || startIndex >= newItems.length) return const [];
+    return newItems.skip(startIndex).take(packUnlocker.packSize).toList();
+  }
+
+  /// Builds a game whose questions are only drawn from pack [packNumber]
+  /// (a level on the path, CLAUDE.md section 10), while distractor choices
+  /// still come from the whole unlocked pool, same as [buildRoundFor].
+  List<AlphabetRound> buildGameForPack({
+    required List<AlphabetItem> allItemsInOrder,
+    required Set<String> startUnlockedItemIds,
+    required Map<String, ItemState> states,
+    required int packNumber,
+  }) {
+    final packItems = itemsInPack(
+      allItemsInOrder: allItemsInOrder,
+      startUnlockedItemIds: startUnlockedItemIds,
+      packNumber: packNumber,
+    );
+    if (packItems.isEmpty) {
+      throw ArgumentError('No items in pack $packNumber');
+    }
+    final pool = unlockedPool(
+      allItemsInOrder: allItemsInOrder,
+      startUnlockedItemIds: startUnlockedItemIds,
+      states: states,
+    );
+    if (pool.length < choiceCount) {
+      throw ArgumentError(
+        'Need at least $choiceCount unlocked items to build a game, got ${pool.length}',
+      );
+    }
+    final targets = [
+      for (var i = 0; i < questionCount; i++) packItems[_random.nextInt(packItems.length)],
+    ];
     return targets.map((target) => buildRoundFor(target, pool)).toList();
   }
 

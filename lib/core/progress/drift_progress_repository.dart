@@ -196,5 +196,41 @@ class DriftProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<String?> lastWorld() async {
+    final row = await (_db.select(
+      _db.settingsRows,
+    )..where((t) => t.id.equals(0))).getSingleOrNull();
+    return row?.world;
+  }
+
+  @override
+  Future<void> setLastWorld(String world) {
+    return _db
+        .into(_db.settingsRows)
+        .insertOnConflictUpdate(
+          SettingsRowsCompanion.insert(id: const Value(0), world: Value(world)),
+        );
+  }
+
+  @override
+  Future<int> bestStarsFor(String levelId) async {
+    final row = await (_db.select(
+      _db.levelBestStarRows,
+    )..where((t) => t.levelId.equals(levelId))).getSingleOrNull();
+    return row?.bestStars ?? 0;
+  }
+
+  @override
+  Future<void> recordLevelStars(String levelId, int stars) async {
+    final current = await bestStarsFor(levelId);
+    if (stars <= current) return;
+    await _db
+        .into(_db.levelBestStarRows)
+        .insertOnConflictUpdate(
+          LevelBestStarRowsCompanion.insert(levelId: levelId, bestStars: stars),
+        );
+  }
+
+  @override
   Future<void> dispose() => _db.close();
 }

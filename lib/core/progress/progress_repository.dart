@@ -60,5 +60,20 @@ abstract class ProgressRepository {
 
   Future<void> setTracingQueueCursor(String cursor);
 
+  /// The world last chosen on the home screen ('fr'/'en'), or null if
+  /// never chosen yet (CLAUDE.md section 10: "le monde choisi est
+  /// mémorisé").
+  Future<String?> lastWorld();
+
+  Future<void> setLastWorld(String world);
+
+  /// The best star count ever reached on [levelId] (see `level_path.dart`
+  /// for how level ids are built), or 0 if never played.
+  Future<int> bestStarsFor(String levelId);
+
+  /// Records [stars] for [levelId] if higher than the current best
+  /// (CLAUDE.md section 10: a level keeps its best stars, never loses them).
+  Future<void> recordLevelStars(String levelId, int stars);
+
   Future<void> dispose();
 }

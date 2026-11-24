@@ -197,4 +197,84 @@ void main() {
       }
     });
   });
+
+  group('itemsInPack / buildGameForPack (level path, CLAUDE.md section 10)', () {
+    test('itemsInPack returns the exact glyphs of a given pack', () {
+      final composer = AlphabetGameComposer();
+
+      final pack1 = composer.itemsInPack(
+        allItemsInOrder: alphabet,
+        startUnlockedItemIds: startIds,
+        packNumber: 1,
+      );
+      final pack2 = composer.itemsInPack(
+        allItemsInOrder: alphabet,
+        startUnlockedItemIds: startIds,
+        packNumber: 2,
+      );
+
+      expect(pack1.map((i) => i.glyph), ['F', 'G', 'H']);
+      expect(pack2.map((i) => i.glyph), ['I', 'J', 'K']);
+    });
+
+    test('itemsInPack is empty past the last pack', () {
+      final composer = AlphabetGameComposer();
+
+      final pack = composer.itemsInPack(
+        allItemsInOrder: alphabet,
+        startUnlockedItemIds: startIds,
+        packNumber: 999,
+      );
+
+      expect(pack, isEmpty);
+    });
+
+    test('buildGameForPack only ever targets that pack\'s letters', () {
+      final states = {for (final id in startIds) id: ItemState.aRevoir};
+
+      for (var seed = 0; seed < 20; seed++) {
+        final rounds = AlphabetGameComposer(random: Random(seed)).buildGameForPack(
+          allItemsInOrder: alphabet,
+          startUnlockedItemIds: startIds,
+          states: states,
+          packNumber: 1,
+        );
+
+        expect(rounds, hasLength(5));
+        for (final round in rounds) {
+          expect(['F', 'G', 'H'], contains(round.target.glyph));
+        }
+      }
+    });
+
+    test('buildGameForPack still draws distractors from the whole unlocked pool', () {
+      final states = {for (final id in startIds) id: ItemState.aRevoir};
+
+      final rounds = AlphabetGameComposer(random: Random(1)).buildGameForPack(
+        allItemsInOrder: alphabet,
+        startUnlockedItemIds: startIds,
+        states: states,
+        packNumber: 1,
+      );
+
+      final allChoiceGlyphs = rounds.expand((r) => r.choices.map((c) => c.glyph)).toSet();
+      expect(
+        allChoiceGlyphs.any((g) => startIds.any((id) => id.endsWith('.$g'))),
+        isTrue,
+        reason: 'distractors should be able to come from the start set too, not just the pack',
+      );
+    });
+
+    test('buildGameForPack throws for a pack that does not exist', () {
+      expect(
+        () => AlphabetGameComposer().buildGameForPack(
+          allItemsInOrder: alphabet,
+          startUnlockedItemIds: startIds,
+          states: const {},
+          packNumber: 999,
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
 }

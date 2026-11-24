@@ -160,11 +160,18 @@ fin de chaque étape. Après chaque étape : `flutter analyze`, `flutter test`, 
    nouveau), reprise automatique après erreur, panneau de debug `/debug/progress`.
 5. **Récompenses** : écran Bravo, étoiles, confettis, album d'autocollants, intensité.
 6. **Tracé** : CustomPainter, points clés par glyphe (JSON), tolérance large, flèches et point de départ,
-   prénom.
-7. **Nombres** : écoute et touche, compte les objets, glisse le chiffre dans sa silhouette, dizaines.
-8. **Vocabulaire** : animaux et couleurs, image → mot, pont FR → EN.
-9. **Espace parent** : gate, réglages, enregistrement voix, suivi.
-10. **Parcours du jour + monde français** : sélection automatique, jeu-découverte, minuteur de séance.
+   prénom, tracé trait par trait (un trait = un lever de doigt), tolérance sur l'ordre des traits.
+7. **Structure** : accueil (mascotte, gros bouton ▶ « Parcours du jour », drapeaux FR/EN qui mémorisent
+   le monde choisi, plus d'icônes de raccourci temporaires), parcours du jour (enchaîne 1 jeu d'alphabet
+   puis 1 séance de tracé — 5 tracés max — et finit sur Bravo ; respecte la durée de séance, 10 min par
+   défaut, en config ; s'arrête tôt si le temps est écoulé après l'alphabet), carte des îles accessible
+   depuis l'accueil (Alphabet et Tracé ouvertes, Nombres et Mots verrouillées), un chemin de niveaux par
+   île ouverte (1 niveau = 1 paquet du moteur, verrouillé / ouvert en pulsant / terminé avec ses
+   meilleures étoiles ; pour le Tracé, le premier niveau est toujours le prénom). Aucun texte sur ces
+   écrans : icônes, couleurs, voix. Reste à faire : le jeu-découverte du monde français (A-J, 1-10).
+8. **Nombres** : écoute et touche, compte les objets, glisse le chiffre dans sa silhouette, dizaines.
+9. **Vocabulaire** : animaux et couleurs, image → mot, pont FR → EN.
+10. **Espace parent** : gate, réglages, enregistrement voix, suivi.
 11. **Finition** : performances sur la tablette Android 10, taille de l'APK (< 80 Mo), icône, build
     release signé, `README.md` d'installation.
 

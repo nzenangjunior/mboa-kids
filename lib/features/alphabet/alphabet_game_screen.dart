@@ -32,7 +32,19 @@ const _wrongAnswerHighlightDuration = Duration(seconds: 1);
 /// chosen from the real progression state: only unlocked letters appear,
 /// mixing known and new ones (CLAUDE.md section 7).
 class AlphabetGameScreen extends ConsumerStatefulWidget {
-  const AlphabetGameScreen({super.key});
+  const AlphabetGameScreen({super.key, this.packNumber, this.onFinished});
+
+  /// When set, the game targets only this pack's letters (CLAUDE.md
+  /// section 10: "1 niveau = 1 paquet du moteur"), reached by tapping that
+  /// level on the island's path, instead of the automatic mix across the
+  /// whole unlocked pool. Its best stars are then recorded for that level.
+  final int? packNumber;
+
+  /// Called with the finished game's result instead of navigating to
+  /// `/bravo` directly, so a caller such as the daily path can chain into
+  /// another activity first and show one combined Bravo screen at the
+  /// end. Defaults to navigating to `/bravo` itself, for standalone play.
+  final void Function(BravoResult result)? onFinished;
 
   @override
   ConsumerState<AlphabetGameScreen> createState() =>
@@ -170,11 +182,18 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       startUnlockedItemIds: startIds,
       states: states,
     );
-    final rounds = composer.buildGame(
-      allItemsInOrder: alphabet.items,
-      startUnlockedItemIds: startIds,
-      states: states,
-    );
+    final rounds = widget.packNumber != null
+        ? composer.buildGameForPack(
+            allItemsInOrder: alphabet.items,
+            startUnlockedItemIds: startIds,
+            states: states,
+            packNumber: widget.packNumber!,
+          )
+        : composer.buildGame(
+            allItemsInOrder: alphabet.items,
+            startUnlockedItemIds: startIds,
+            states: states,
+          );
 
     if (!mounted) return;
     setState(() {
@@ -367,6 +386,7 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
 
   Future<void> _finishGame() async {
     final repository = ref.read(progressRepositoryProvider);
+    final stars = starsForFirstTryCorrect(_mainCorrectFirstTryCount);
     var sticker = _fallbackSticker;
     try {
       final catalog = await ref
@@ -387,14 +407,31 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       // Keep the built-in sticker and move on regardless of what failed.
     }
 
+    if (widget.packNumber != null) {
+      final world = ref.read(worldProvider);
+      try {
+        await repository
+            .recordLevelStars('$world.alphabet.pack${widget.packNumber}', stars)
+            .timeout(_finishGameStepTimeout);
+      } catch (_) {
+        // The level path just won't show an updated best yet; never blocks
+        // the celebration itself. A bare try/catch alone would not have
+        // been enough here: a hung write (not a thrown error) never
+        // reaches a catch without the timeout forcing it to give up.
+      }
+    }
+
     if (!mounted) return;
-    context.go(
-      '/bravo',
-      extra: BravoResult(
-        stars: starsForFirstTryCorrect(_mainCorrectFirstTryCount),
-        gameSticker: sticker,
-        newlyAcquiredLetterGlyphs: _newlyAcquiredGlyphs,
-      ),
+    final result = BravoResult(
+      stars: stars,
+      gameSticker: sticker,
+      newlyAcquiredLetterGlyphs: _newlyAcquiredGlyphs,
     );
+    final onFinished = widget.onFinished;
+    if (onFinished != null) {
+      onFinished(result);
+    } else {
+      context.go('/bravo', extra: result);
+    }
   }
 }

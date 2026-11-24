@@ -15,6 +15,7 @@ import 'package:mboa_kids/core/progress/drift_progress_repository.dart';
 import 'package:mboa_kids/core/progress/progress_database.dart';
 import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/features/alphabet/alphabet_game_screen.dart';
+import 'package:mboa_kids/features/rewards/bravo_result.dart';
 import 'package:mboa_kids/shared/widgets/choice_card.dart';
 
 class _FakeAssetBundle extends CachingAssetBundle {
@@ -108,6 +109,8 @@ const _alphabetJson = '''
 Widget _buildTestApp({
   ProgressRepository? progressRepository,
   AudioService? audioService,
+  int? packNumber,
+  void Function(BravoResult result)? onFinished,
 }) {
   return ProviderScope(
     overrides: [
@@ -129,7 +132,11 @@ Widget _buildTestApp({
       routerConfig: GoRouter(
         initialLocation: '/',
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const AlphabetGameScreen()),
+          GoRoute(
+            path: '/',
+            builder: (context, state) =>
+                AlphabetGameScreen(packNumber: packNumber, onFinished: onFinished),
+          ),
           GoRoute(
             path: '/bravo',
             builder: (context, state) => const Scaffold(body: Text('BRAVO_MARKER')),
@@ -346,4 +353,75 @@ void main() {
       expect(find.byType(ChoiceCard), findsWidgets);
     },
   );
+
+  group('level path (CLAUDE.md section 10: 1 niveau = 1 paquet)', () {
+    testWidgets('packNumber targets only that pack\'s letters, round after round', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(_buildTestApp(packNumber: 1));
+      await tester.pumpAndSettle();
+
+      for (var round = 0; round < 5; round++) {
+        await tester.tap(find.byType(ChoiceCard).first);
+        await tester.pump();
+        final target = tester
+            .widgetList<ChoiceCard>(find.byType(ChoiceCard))
+            .firstWhere((card) => card.state == ChoiceCardState.correct);
+        expect(['A', 'B', 'C'], contains(target.label));
+
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('onFinished is called instead of navigating to /bravo directly', (
+      WidgetTester tester,
+    ) async {
+      BravoResult? result;
+      await tester.pumpWidget(_buildTestApp(onFinished: (r) => result = r));
+      await tester.pumpAndSettle();
+
+      for (var attempt = 0; attempt < 40; attempt++) {
+        if (result != null) break;
+        final cards = find.byType(ChoiceCard);
+        final count = tester.widgetList<ChoiceCard>(cards).length;
+        await tester.tap(cards.at(attempt % count));
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pumpAndSettle();
+      }
+
+      expect(result, isNotNull);
+      expect(
+        find.text('BRAVO_MARKER'),
+        findsNothing,
+        reason: 'onFinished replaces the default navigation to /bravo',
+      );
+    });
+
+    testWidgets('finishing a pack-scoped game records that level\'s best stars', (
+      WidgetTester tester,
+    ) async {
+      final db = ProgressDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repository = DriftProgressRepository(db);
+
+      await tester.pumpWidget(
+        _buildTestApp(progressRepository: repository, packNumber: 1),
+      );
+      await tester.pumpAndSettle();
+
+      for (var attempt = 0; attempt < 40; attempt++) {
+        if (find.text('BRAVO_MARKER').evaluate().isNotEmpty) break;
+        final cards = find.byType(ChoiceCard);
+        final count = tester.widgetList<ChoiceCard>(cards).length;
+        await tester.tap(cards.at(attempt % count));
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('BRAVO_MARKER'), findsOneWidget);
+      final best = await repository.bestStarsFor('fr.alphabet.pack1');
+      expect(best, greaterThanOrEqualTo(1));
+    });
+  });
 }

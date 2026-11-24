@@ -14,6 +14,7 @@ import 'package:mboa_kids/core/progress/progress_database.dart';
 import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/core/rewards/sticker_catalog.dart';
 import 'package:mboa_kids/core/tracing/tracing_glyph.dart';
+import 'package:mboa_kids/core/tracing/tracing_queue.dart';
 import 'package:mboa_kids/features/rewards/bravo_result.dart';
 import 'package:mboa_kids/features/rewards/bravo_screen.dart';
 import 'package:mboa_kids/features/tracing/tracing_canvas_painter.dart';
@@ -202,6 +203,9 @@ Widget _buildTestApp({
   Map<String, TracingGlyph>? glyphs,
   ProgressRepository? repository,
   int dayOffset = 0,
+  List<TracingQueueItem>? explicitItems,
+  String? levelId,
+  void Function(BravoResult result)? onFinished,
 }) {
   return ProviderScope(
     // A fresh key per build: two sequential pumpWidget() calls at the same
@@ -249,7 +253,14 @@ Widget _buildTestApp({
       routerConfig: GoRouter(
         initialLocation: '/',
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const TracingGameScreen()),
+          GoRoute(
+            path: '/',
+            builder: (context, state) => TracingGameScreen(
+              explicitItems: explicitItems,
+              levelId: levelId,
+              onFinished: onFinished,
+            ),
+          ),
           GoRoute(
             path: '/bravo',
             builder: (context, state) => BravoScreen(result: state.extra as BravoResult?),
@@ -832,5 +843,98 @@ void main() {
         expect(find.text('Accueil'), findsOneWidget);
       },
     );
+  });
+
+  group('level path (CLAUDE.md section 10: a level is one pack, or the name)', () {
+    testWidgets('explicitItems traces only that level, ignoring the automatic queue', (
+      WidgetTester tester,
+    ) async {
+      final audio = _RecordingAudioService();
+      // The automatic queue (name 'A') would pick a different letter than
+      // the explicit level below ('B'), proving the level wins.
+      await tester.pumpWidget(
+        _buildTestApp(
+          audioService: audio,
+          childFirstName: 'A',
+          explicitItems: const [TracingQueueItem(id: 'fr.letter.B', glyphKey: 'B')],
+          levelId: 'fr.tracing.pack1',
+        ),
+      );
+      await _pumpUntilIdle(tester);
+
+      expect(audio.playedItemIds, ['fr.letter.B']);
+
+      await _traceCurrentItem(tester, isLastOfActivity: true);
+
+      expect(find.text('Accueil'), findsOneWidget);
+    });
+
+    testWidgets('onFinished is called instead of navigating to /bravo directly', (
+      WidgetTester tester,
+    ) async {
+      BravoResult? result;
+      await tester.pumpWidget(
+        _buildTestApp(
+          childFirstName: 'A',
+          explicitItems: const [TracingQueueItem(id: 'fr.letter.A', glyphKey: 'A')],
+          levelId: 'fr.tracing.pack1',
+          onFinished: (r) => result = r,
+        ),
+      );
+      await _pumpUntilIdle(tester);
+
+      await _traceCurrentItem(tester, isLastOfActivity: true);
+
+      expect(result, isNotNull);
+      expect(
+        find.text('Accueil'),
+        findsNothing,
+        reason: 'onFinished replaces the default navigation to /bravo',
+      );
+    });
+
+    testWidgets('finishing a level-scoped session records that level\'s best stars', (
+      WidgetTester tester,
+    ) async {
+      final db = ProgressDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repository = DriftProgressRepository(db);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          childFirstName: 'A',
+          repository: repository,
+          explicitItems: const [TracingQueueItem(id: 'fr.letter.A', glyphKey: 'A')],
+          levelId: 'fr.tracing.pack1',
+        ),
+      );
+      await _pumpUntilIdle(tester);
+
+      await _traceCurrentItem(tester, isLastOfActivity: true);
+
+      final best = await repository.bestStarsFor('fr.tracing.pack1');
+      expect(best, greaterThanOrEqualTo(1));
+    });
+
+    testWidgets('a level-scoped session never moves the automatic queue\'s cursor', (
+      WidgetTester tester,
+    ) async {
+      final db = ProgressDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repository = DriftProgressRepository(db);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          childFirstName: 'A',
+          repository: repository,
+          explicitItems: const [TracingQueueItem(id: 'fr.letter.B', glyphKey: 'B')],
+          levelId: 'fr.tracing.pack1',
+        ),
+      );
+      await _pumpUntilIdle(tester);
+      await _traceCurrentItem(tester, isLastOfActivity: true);
+
+      expect(await repository.tracingQueueCursor(), isNull);
+    });
   });
 }

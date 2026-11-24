@@ -72,4 +72,42 @@ void main() {
     expect(states['en.letter.B'], ItemState.acquis);
     expect(states.containsKey('en.letter.C'), isFalse);
   });
+
+  group('lastWorld', () {
+    test('is null until a world is chosen', () async {
+      expect(await repository.lastWorld(), isNull);
+    });
+
+    test('persists the chosen world across reads', () async {
+      await repository.setLastWorld('en');
+
+      expect(await repository.lastWorld(), 'en');
+    });
+  });
+
+  group('level best stars', () {
+    test('a never-played level has 0 best stars', () async {
+      expect(await repository.bestStarsFor('fr.alphabet.pack1'), 0);
+    });
+
+    test('keeps the higher of two recorded scores', () async {
+      await repository.recordLevelStars('fr.alphabet.pack1', 2);
+      await repository.recordLevelStars('fr.alphabet.pack1', 1);
+
+      expect(await repository.bestStarsFor('fr.alphabet.pack1'), 2);
+    });
+
+    test('a higher score later replaces a lower best', () async {
+      await repository.recordLevelStars('fr.alphabet.pack1', 1);
+      await repository.recordLevelStars('fr.alphabet.pack1', 3);
+
+      expect(await repository.bestStarsFor('fr.alphabet.pack1'), 3);
+    });
+
+    test('levels are tracked independently', () async {
+      await repository.recordLevelStars('fr.alphabet.pack1', 3);
+
+      expect(await repository.bestStarsFor('fr.alphabet.pack2'), 0);
+    });
+  });
 }

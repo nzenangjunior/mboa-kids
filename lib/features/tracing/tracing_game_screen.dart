@@ -44,7 +44,21 @@ const _replayDuration = Duration(milliseconds: 1400);
 /// recognition games use, and the activity ends with stars and a sticker,
 /// exactly like the alphabet game.
 class TracingGameScreen extends ConsumerStatefulWidget {
-  const TracingGameScreen({super.key});
+  const TracingGameScreen({super.key, this.explicitItems, this.levelId, this.onFinished});
+
+  /// When set, the session traces only these items (CLAUDE.md section 10:
+  /// "1 niveau = 1 paquet" or the "prénom" level), reached by tapping that
+  /// level on the island's path, instead of the automatic queue with its
+  /// cross-session cursor and 5-item cap. [levelId] must be set too, to
+  /// record that level's best stars.
+  final List<TracingQueueItem>? explicitItems;
+  final String? levelId;
+
+  /// Called with the finished session's result instead of navigating to
+  /// `/bravo` directly, so a caller such as the daily path can chain into
+  /// another activity first and show one combined Bravo screen at the
+  /// end. Defaults to navigating to `/bravo` itself, for standalone play.
+  final void Function(BravoResult result)? onFinished;
 
   @override
   ConsumerState<TracingGameScreen> createState() => _TracingGameScreenState();
@@ -59,7 +73,10 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
   int _index = 0;
   bool _loading = true;
   bool _success = false;
-  bool _finished = false;
+  /// Nothing was eligible to trace from the very start (e.g. no first name
+  /// and no recognized letters) — not the same as finishing the session
+  /// normally, which never sets this (see [_goToNextQueueItem]).
+  bool _emptyQueueAtLoad = false;
   bool _replaying = false;
 
   /// Whether the current item shows the dotted guide. Decided once per
@@ -126,32 +143,43 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
   }
 
   Future<void> _load() async {
-    final world = ref.read(worldProvider);
     final tracingContent = await ref.read(tracingContentProvider.future);
-    final alphabet = await ref.read(alphabetContentProvider(world).future);
-    final numbers = await ref.read(numbersContentProvider(world).future);
     final repository = ref.read(progressRepositoryProvider);
-    final states = await repository.statesFor(
-      alphabet.items.map((item) => item.id).toList(),
-    );
-    final firstName = ref.read(childFirstNameProvider);
 
-    final fullQueue = buildFullTracingQueue(
-      alphabetItems: alphabet.items,
-      states: states,
-      firstName: firstName,
-      numbersContent: numbers,
-      hasTracingData: (glyphKey) => tracingContent[glyphKey] != null,
-    );
-    final cursor = await repository.tracingQueueCursor();
-    final session = selectTracingSessionQueue(fullQueue, afterCursor: cursor);
+    List<TracingSessionItem> session;
+    if (widget.explicitItems != null) {
+      // A specific level was tapped (CLAUDE.md section 10): no cursor, no
+      // 5-item cap — just that level's items, every time.
+      session = selectTracingSessionQueue(
+        widget.explicitItems!,
+        maxItems: widget.explicitItems!.length,
+      );
+    } else {
+      final world = ref.read(worldProvider);
+      final alphabet = await ref.read(alphabetContentProvider(world).future);
+      final numbers = await ref.read(numbersContentProvider(world).future);
+      final states = await repository.statesFor(
+        alphabet.items.map((item) => item.id).toList(),
+      );
+      final firstName = ref.read(childFirstNameProvider);
+
+      final fullQueue = buildFullTracingQueue(
+        alphabetItems: alphabet.items,
+        states: states,
+        firstName: firstName,
+        numbersContent: numbers,
+        hasTracingData: (glyphKey) => tracingContent[glyphKey] != null,
+      );
+      final cursor = await repository.tracingQueueCursor();
+      session = selectTracingSessionQueue(fullQueue, afterCursor: cursor);
+    }
 
     if (!mounted) return;
     setState(() {
       _tracingContent = tracingContent;
       _queue = session;
       _loading = false;
-      _finished = session.isEmpty;
+      _emptyQueueAtLoad = session.isEmpty;
     });
     if (session.isNotEmpty) {
       unawaited(_prepareAndPromptCurrentItem());
@@ -338,7 +366,12 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       if (_itemStartFirstAcquiredAt == null && updated.firstAcquiredAt != null) {
         _newlyAcquiredGlyphs.add(item.glyphKey);
       }
-      await repository.setTracingQueueCursor(sessionItem.occurrenceKey);
+      // A level-scoped session (CLAUDE.md section 10) never touches the
+      // automatic queue's cursor: it's a deliberate practice of one pack,
+      // not a turn in the rotating curriculum.
+      if (widget.explicitItems == null) {
+        await repository.setTracingQueueCursor(sessionItem.occurrenceKey);
+      }
     } catch (_) {
       // Recording failing must never block the activity from moving on.
     }
@@ -348,7 +381,10 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
   void _goToNextQueueItem() {
     if (!mounted) return;
     if (_index + 1 >= _queue!.length) {
-      setState(() => _finished = true);
+      // No setState here: the last item's success stays visible (CLAUDE.md
+      // section 13 pattern — never flash an unrelated fallback screen) while
+      // _finishActivity resolves and either navigates away or hands the
+      // result to onFinished.
       unawaited(_finishActivity());
       return;
     }
@@ -377,6 +413,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     }
 
     final repository = ref.read(progressRepositoryProvider);
+    final stars = starsForTracingFirstTry(_tracedFirstTryCount, _queue!.length);
     var sticker = _fallbackSticker;
     try {
       final catalog = await ref
@@ -397,15 +434,31 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       // Keep the built-in sticker and move on regardless of what failed.
     }
 
+    if (widget.levelId != null) {
+      try {
+        await repository
+            .recordLevelStars(widget.levelId!, stars)
+            .timeout(_finishActivityStepTimeout);
+      } catch (_) {
+        // The level path just won't show an updated best yet; never blocks
+        // the celebration itself. A bare try/catch alone would not have
+        // been enough here: a hung write (not a thrown error) never
+        // reaches a catch without the timeout forcing it to give up.
+      }
+    }
+
     if (!mounted) return;
-    context.go(
-      '/bravo',
-      extra: BravoResult(
-        stars: starsForTracingFirstTry(_tracedFirstTryCount, _queue!.length),
-        gameSticker: sticker,
-        newlyAcquiredLetterGlyphs: _newlyAcquiredGlyphs,
-      ),
+    final result = BravoResult(
+      stars: stars,
+      gameSticker: sticker,
+      newlyAcquiredLetterGlyphs: _newlyAcquiredGlyphs,
     );
+    final onFinished = widget.onFinished;
+    if (onFinished != null) {
+      onFinished(result);
+    } else {
+      context.go('/bravo', extra: result);
+    }
   }
 
   @override
@@ -413,7 +466,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    if (_finished) {
+    if (_emptyQueueAtLoad) {
       return _buildEmptyQueue(context);
     }
 
