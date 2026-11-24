@@ -86,6 +86,11 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
   /// traced successfully with the guide on an earlier day.
   bool _guided = true;
 
+  /// True while an instruction is actually being spoken — the mascot
+  /// ignores being tapped during that window instead of queuing a second
+  /// phrase behind the first (CLAUDE.md section 10).
+  bool _isSpeaking = false;
+
   bool _itemHadFailedAttempt = false;
   DateTime? _itemStartFirstAcquiredAt;
   int _tracedFirstTryCount = 0;
@@ -217,15 +222,25 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     await _playPromptForCurrent();
   }
 
+  /// Speaks the current item's instruction as a single, uninterrupted
+  /// unit (CLAUDE.md section 10): always stops whatever was still
+  /// playing first, so there is never more than one instruction in
+  /// flight, and ignored (via the mascot's onTap, see build()) while one
+  /// is already being spoken.
   Future<void> _playPromptForCurrent() async {
+    if (!mounted) return;
+    setState(() => _isSpeaking = true);
     try {
       final world = ref.read(worldProvider);
       final audio = await _audioFor(world);
+      await audio.stop();
       await audio.playPrompt('trace_the_letter');
       await audio.playItem(_queue![_index].item.id);
     } catch (_) {
       // A missing or slow clip must never block the activity: the child
       // can still see the guide and trace it without the spoken prompt.
+    } finally {
+      if (mounted) setState(() => _isSpeaking = false);
     }
   }
 
@@ -491,7 +506,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Mascot(mood: mood, onTap: _playPromptForCurrent),
+            Mascot(mood: mood, onTap: _isSpeaking ? null : _playPromptForCurrent),
             const SizedBox(height: 8),
             ProgressDots(total: _queue!.length, filled: _index),
             const SizedBox(height: 8),

@@ -35,10 +35,14 @@ class _FakeAssetBundle extends CachingAssetBundle {
 }
 
 class _FakeAudioService implements AudioService {
+  final List<String> promptCalls = [];
+
   @override
   Future<void> playItem(String itemId) async {}
   @override
-  Future<void> playPrompt(String key) async {}
+  Future<void> playPrompt(String key) async {
+    promptCalls.add(key);
+  }
   @override
   Future<void> playSfx(String name) async {}
   @override
@@ -80,7 +84,11 @@ final _straightLineGlyph = TracingGlyph(
   ],
 );
 
-Widget _buildTestApp({Duration? sessionDuration, int dayOffset = 0}) {
+Widget _buildTestApp({
+  Duration? sessionDuration,
+  int dayOffset = 0,
+  AudioService? audioService,
+}) {
   return ProviderScope(
     overrides: [
       worldProvider.overrideWith((ref) => 'fr'),
@@ -94,7 +102,7 @@ Widget _buildTestApp({Duration? sessionDuration, int dayOffset = 0}) {
           }),
         ),
       ),
-      audioServiceProvider('fr').overrideWith((ref) async => _FakeAudioService()),
+      audioServiceProvider('fr').overrideWith((ref) async => audioService ?? _FakeAudioService()),
       progressRepositoryProvider.overrideWithValue(
         DriftProgressRepository(ProgressDatabase(NativeDatabase.memory())),
       ),
@@ -165,6 +173,9 @@ void main() {
   ) async {
     await tester.pumpWidget(_buildTestApp());
     await tester.pump(const Duration(milliseconds: 100));
+    // Past the 2s step-indicator intro overlay, which otherwise blocks
+    // every tap underneath it (CLAUDE.md section 10, Refonte visuelle).
+    await tester.pump(const Duration(seconds: 2));
 
     expect(find.byType(AlphabetGameScreen), findsOneWidget);
 
@@ -174,6 +185,8 @@ void main() {
       findsOneWidget,
       reason: 'after the alphabet game, the daily path moves to tracing',
     );
+    // Past the step-indicator transition overlay between the two phases.
+    await tester.pump(const Duration(seconds: 2));
 
     await _traceTheOneTracingItem(tester);
 
@@ -186,6 +199,7 @@ void main() {
     (WidgetTester tester) async {
       await tester.pumpWidget(_buildTestApp(sessionDuration: Duration.zero));
       await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(seconds: 2));
 
       await _answerEveryAlphabetRound(tester);
 
@@ -197,4 +211,66 @@ void main() {
       expect(find.byType(BravoScreen), findsOneWidget);
     },
   );
+
+  group('step indicator (CLAUDE.md section 10: lettres → tracé → étoile)', () {
+    testWidgets(
+      'shows the steps big and announced for 2s, then small for the rest of the alphabet game',
+      (WidgetTester tester) async {
+        final audio = _FakeAudioService();
+        await tester.pumpWidget(_buildTestApp(audioService: audio));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Big intro: all 3 step icons visible, announced once.
+        expect(find.byIcon(Icons.abc), findsOneWidget);
+        expect(find.byIcon(Icons.edit), findsOneWidget);
+        expect(find.byIcon(Icons.star), findsOneWidget);
+        expect(audio.promptCalls.where((c) => c == 'daily_path_intro').length, 1);
+        expect(
+          find.byType(ColoredBox),
+          findsWidgets,
+          reason: 'the intro is a full-screen overlay on top of the game',
+        );
+
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Small from then on: same 3 icons, but no more full-screen overlay.
+        expect(find.byIcon(Icons.abc), findsOneWidget);
+        expect(find.byIcon(Icons.edit), findsOneWidget);
+        expect(find.byIcon(Icons.star), findsOneWidget);
+        expect(find.byType(ChoiceCard), findsWidgets, reason: 'the game itself is now reachable');
+      },
+    );
+
+    testWidgets(
+      'announces a transition and checks off the alphabet step once tracing starts',
+      (WidgetTester tester) async {
+        final audio = _FakeAudioService();
+        await tester.pumpWidget(_buildTestApp(audioService: audio));
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(seconds: 2));
+
+        await _answerEveryAlphabetRound(tester);
+        expect(find.byType(TracingGameScreen), findsOneWidget);
+
+        expect(
+          audio.promptCalls.where((c) => c == 'daily_path_to_tracing').length,
+          1,
+          reason: 'a short transition is announced between the two steps',
+        );
+        expect(
+          find.byIcon(Icons.check_circle),
+          findsOneWidget,
+          reason: 'the finished alphabet step is checked off',
+        );
+
+        await tester.pump(const Duration(seconds: 2));
+        expect(
+          find.byIcon(Icons.check_circle),
+          findsOneWidget,
+          reason: 'still checked off once the transition overlay is gone',
+        );
+      },
+    );
+  });
 }

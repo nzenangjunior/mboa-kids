@@ -1012,10 +1012,23 @@ class $SettingsRowsTable extends SettingsRows
   late final GeneratedColumn<int> albumLastSeenCount = GeneratedColumn<int>(
     'album_last_seen_count',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _hasShownPlayHintMeta = const VerificationMeta(
+    'hasShownPlayHint',
+  );
+  @override
+  late final GeneratedColumn<bool> hasShownPlayHint = GeneratedColumn<bool>(
+    'has_shown_play_hint',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_shown_play_hint" IN (0, 1))',
+    ),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -1024,6 +1037,7 @@ class $SettingsRowsTable extends SettingsRows
     tracingQueueCursor,
     world,
     albumLastSeenCount,
+    hasShownPlayHint,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1070,6 +1084,15 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('has_shown_play_hint')) {
+      context.handle(
+        _hasShownPlayHintMeta,
+        hasShownPlayHint.isAcceptableOrUnknown(
+          data['has_shown_play_hint']!,
+          _hasShownPlayHintMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1098,7 +1121,11 @@ class $SettingsRowsTable extends SettingsRows
       albumLastSeenCount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}album_last_seen_count'],
-      )!,
+      ),
+      hasShownPlayHint: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_shown_play_hint'],
+      ),
     );
   }
 
@@ -1128,14 +1155,30 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   /// How many stickers + golden letters were earned the last time the
   /// album was opened (CLAUDE.md section 10, Refonte visuelle: the home
   /// screen's album icon shows a badge when this is lower than the
-  /// current total).
-  final int albumLastSeenCount;
+  /// current total). Null (never recorded yet) is read back as 0 by the
+  /// repository — kept nullable, not `.withDefault()`, like the other
+  /// optional columns above: under the web preview's degraded
+  /// `sharedIndexedDb` persistence, a migration adding a non-nullable
+  /// column with a SQL default did not reliably backfill it on the
+  /// existing settings row, so every later read of this row (any
+  /// column, not just this one) threw a null-check error from drift's
+  /// generated row mapper — reproduced live, see CLAUDE.md section 13.
+  final int? albumLastSeenCount;
+
+  /// Whether the home screen's first-visit hint ("touche le gros bouton
+  /// pour jouer !", the mascot pointing at it) has already played once
+  /// (CLAUDE.md section 10, Refonte visuelle) — shown only the first
+  /// time. Null (never recorded) reads back as false — nullable rather
+  /// than `.withDefault()`, for the same reason as [albumLastSeenCount]
+  /// above.
+  final bool? hasShownPlayHint;
   const SettingsRow({
     required this.id,
     required this.intensity,
     this.tracingQueueCursor,
     this.world,
-    required this.albumLastSeenCount,
+    this.albumLastSeenCount,
+    this.hasShownPlayHint,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1148,7 +1191,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     if (!nullToAbsent || world != null) {
       map['world'] = Variable<String>(world);
     }
-    map['album_last_seen_count'] = Variable<int>(albumLastSeenCount);
+    if (!nullToAbsent || albumLastSeenCount != null) {
+      map['album_last_seen_count'] = Variable<int>(albumLastSeenCount);
+    }
+    if (!nullToAbsent || hasShownPlayHint != null) {
+      map['has_shown_play_hint'] = Variable<bool>(hasShownPlayHint);
+    }
     return map;
   }
 
@@ -1162,7 +1210,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       world: world == null && nullToAbsent
           ? const Value.absent()
           : Value(world),
-      albumLastSeenCount: Value(albumLastSeenCount),
+      albumLastSeenCount: albumLastSeenCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(albumLastSeenCount),
+      hasShownPlayHint: hasShownPlayHint == null && nullToAbsent
+          ? const Value.absent()
+          : Value(hasShownPlayHint),
     );
   }
 
@@ -1178,7 +1231,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         json['tracingQueueCursor'],
       ),
       world: serializer.fromJson<String?>(json['world']),
-      albumLastSeenCount: serializer.fromJson<int>(json['albumLastSeenCount']),
+      albumLastSeenCount: serializer.fromJson<int?>(json['albumLastSeenCount']),
+      hasShownPlayHint: serializer.fromJson<bool?>(json['hasShownPlayHint']),
     );
   }
   @override
@@ -1189,7 +1243,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'intensity': serializer.toJson<String>(intensity),
       'tracingQueueCursor': serializer.toJson<String?>(tracingQueueCursor),
       'world': serializer.toJson<String?>(world),
-      'albumLastSeenCount': serializer.toJson<int>(albumLastSeenCount),
+      'albumLastSeenCount': serializer.toJson<int?>(albumLastSeenCount),
+      'hasShownPlayHint': serializer.toJson<bool?>(hasShownPlayHint),
     };
   }
 
@@ -1198,7 +1253,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     String? intensity,
     Value<String?> tracingQueueCursor = const Value.absent(),
     Value<String?> world = const Value.absent(),
-    int? albumLastSeenCount,
+    Value<int?> albumLastSeenCount = const Value.absent(),
+    Value<bool?> hasShownPlayHint = const Value.absent(),
   }) => SettingsRow(
     id: id ?? this.id,
     intensity: intensity ?? this.intensity,
@@ -1206,7 +1262,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         ? tracingQueueCursor.value
         : this.tracingQueueCursor,
     world: world.present ? world.value : this.world,
-    albumLastSeenCount: albumLastSeenCount ?? this.albumLastSeenCount,
+    albumLastSeenCount: albumLastSeenCount.present
+        ? albumLastSeenCount.value
+        : this.albumLastSeenCount,
+    hasShownPlayHint: hasShownPlayHint.present
+        ? hasShownPlayHint.value
+        : this.hasShownPlayHint,
   );
   SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
     return SettingsRow(
@@ -1219,6 +1280,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       albumLastSeenCount: data.albumLastSeenCount.present
           ? data.albumLastSeenCount.value
           : this.albumLastSeenCount,
+      hasShownPlayHint: data.hasShownPlayHint.present
+          ? data.hasShownPlayHint.value
+          : this.hasShownPlayHint,
     );
   }
 
@@ -1229,14 +1293,21 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('intensity: $intensity, ')
           ..write('tracingQueueCursor: $tracingQueueCursor, ')
           ..write('world: $world, ')
-          ..write('albumLastSeenCount: $albumLastSeenCount')
+          ..write('albumLastSeenCount: $albumLastSeenCount, ')
+          ..write('hasShownPlayHint: $hasShownPlayHint')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, intensity, tracingQueueCursor, world, albumLastSeenCount);
+  int get hashCode => Object.hash(
+    id,
+    intensity,
+    tracingQueueCursor,
+    world,
+    albumLastSeenCount,
+    hasShownPlayHint,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1245,7 +1316,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.intensity == this.intensity &&
           other.tracingQueueCursor == this.tracingQueueCursor &&
           other.world == this.world &&
-          other.albumLastSeenCount == this.albumLastSeenCount);
+          other.albumLastSeenCount == this.albumLastSeenCount &&
+          other.hasShownPlayHint == this.hasShownPlayHint);
 }
 
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
@@ -1253,13 +1325,15 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String> intensity;
   final Value<String?> tracingQueueCursor;
   final Value<String?> world;
-  final Value<int> albumLastSeenCount;
+  final Value<int?> albumLastSeenCount;
+  final Value<bool?> hasShownPlayHint;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
     this.tracingQueueCursor = const Value.absent(),
     this.world = const Value.absent(),
     this.albumLastSeenCount = const Value.absent(),
+    this.hasShownPlayHint = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
@@ -1267,6 +1341,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.tracingQueueCursor = const Value.absent(),
     this.world = const Value.absent(),
     this.albumLastSeenCount = const Value.absent(),
+    this.hasShownPlayHint = const Value.absent(),
   });
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
@@ -1274,6 +1349,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? tracingQueueCursor,
     Expression<String>? world,
     Expression<int>? albumLastSeenCount,
+    Expression<bool>? hasShownPlayHint,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1283,6 +1359,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       if (world != null) 'world': world,
       if (albumLastSeenCount != null)
         'album_last_seen_count': albumLastSeenCount,
+      if (hasShownPlayHint != null) 'has_shown_play_hint': hasShownPlayHint,
     });
   }
 
@@ -1291,7 +1368,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String>? intensity,
     Value<String?>? tracingQueueCursor,
     Value<String?>? world,
-    Value<int>? albumLastSeenCount,
+    Value<int?>? albumLastSeenCount,
+    Value<bool?>? hasShownPlayHint,
   }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
@@ -1299,6 +1377,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       tracingQueueCursor: tracingQueueCursor ?? this.tracingQueueCursor,
       world: world ?? this.world,
       albumLastSeenCount: albumLastSeenCount ?? this.albumLastSeenCount,
+      hasShownPlayHint: hasShownPlayHint ?? this.hasShownPlayHint,
     );
   }
 
@@ -1320,6 +1399,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     if (albumLastSeenCount.present) {
       map['album_last_seen_count'] = Variable<int>(albumLastSeenCount.value);
     }
+    if (hasShownPlayHint.present) {
+      map['has_shown_play_hint'] = Variable<bool>(hasShownPlayHint.value);
+    }
     return map;
   }
 
@@ -1330,7 +1412,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('intensity: $intensity, ')
           ..write('tracingQueueCursor: $tracingQueueCursor, ')
           ..write('world: $world, ')
-          ..write('albumLastSeenCount: $albumLastSeenCount')
+          ..write('albumLastSeenCount: $albumLastSeenCount, ')
+          ..write('hasShownPlayHint: $hasShownPlayHint')
           ..write(')'))
         .toString();
   }
@@ -2685,7 +2768,8 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String> intensity,
       Value<String?> tracingQueueCursor,
       Value<String?> world,
-      Value<int> albumLastSeenCount,
+      Value<int?> albumLastSeenCount,
+      Value<bool?> hasShownPlayHint,
     });
 typedef $$SettingsRowsTableUpdateCompanionBuilder =
     SettingsRowsCompanion Function({
@@ -2693,7 +2777,8 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String> intensity,
       Value<String?> tracingQueueCursor,
       Value<String?> world,
-      Value<int> albumLastSeenCount,
+      Value<int?> albumLastSeenCount,
+      Value<bool?> hasShownPlayHint,
     });
 
 class $$SettingsRowsTableFilterComposer
@@ -2727,6 +2812,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<int> get albumLastSeenCount => $composableBuilder(
     column: $table.albumLastSeenCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasShownPlayHint => $composableBuilder(
+    column: $table.hasShownPlayHint,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2764,6 +2854,11 @@ class $$SettingsRowsTableOrderingComposer
     column: $table.albumLastSeenCount,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get hasShownPlayHint => $composableBuilder(
+    column: $table.hasShownPlayHint,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsRowsTableAnnotationComposer
@@ -2791,6 +2886,11 @@ class $$SettingsRowsTableAnnotationComposer
 
   GeneratedColumn<int> get albumLastSeenCount => $composableBuilder(
     column: $table.albumLastSeenCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hasShownPlayHint => $composableBuilder(
+    column: $table.hasShownPlayHint,
     builder: (column) => column,
   );
 }
@@ -2832,13 +2932,15 @@ class $$SettingsRowsTableTableManager
                 Value<String> intensity = const Value.absent(),
                 Value<String?> tracingQueueCursor = const Value.absent(),
                 Value<String?> world = const Value.absent(),
-                Value<int> albumLastSeenCount = const Value.absent(),
+                Value<int?> albumLastSeenCount = const Value.absent(),
+                Value<bool?> hasShownPlayHint = const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 intensity: intensity,
                 tracingQueueCursor: tracingQueueCursor,
                 world: world,
                 albumLastSeenCount: albumLastSeenCount,
+                hasShownPlayHint: hasShownPlayHint,
               ),
           createCompanionCallback:
               ({
@@ -2846,13 +2948,15 @@ class $$SettingsRowsTableTableManager
                 Value<String> intensity = const Value.absent(),
                 Value<String?> tracingQueueCursor = const Value.absent(),
                 Value<String?> world = const Value.absent(),
-                Value<int> albumLastSeenCount = const Value.absent(),
+                Value<int?> albumLastSeenCount = const Value.absent(),
+                Value<bool?> hasShownPlayHint = const Value.absent(),
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 intensity: intensity,
                 tracingQueueCursor: tracingQueueCursor,
                 world: world,
                 albumLastSeenCount: albumLastSeenCount,
+                hasShownPlayHint: hasShownPlayHint,
               ),
           withReferenceMapper: (p0) => p0
               .map(

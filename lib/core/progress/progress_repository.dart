@@ -91,5 +91,11 @@ abstract class ProgressRepository {
 
   Future<void> setStickerPosition(String stickerId, double dx, double dy);
 
+  /// Whether the home screen's first-visit hint has already played once
+  /// (CLAUDE.md section 10, Refonte visuelle).
+  Future<bool> hasShownPlayHint();
+
+  Future<void> setHasShownPlayHint(bool value);
+
   Future<void> dispose();
 }

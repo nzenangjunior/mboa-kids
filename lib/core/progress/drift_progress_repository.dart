@@ -264,5 +264,22 @@ class DriftProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<bool> hasShownPlayHint() async {
+    final row = await (_db.select(
+      _db.settingsRows,
+    )..where((t) => t.id.equals(0))).getSingleOrNull();
+    return row?.hasShownPlayHint ?? false;
+  }
+
+  @override
+  Future<void> setHasShownPlayHint(bool value) {
+    return _db
+        .into(_db.settingsRows)
+        .insertOnConflictUpdate(
+          SettingsRowsCompanion.insert(id: const Value(0), hasShownPlayHint: Value(value)),
+        );
+  }
+
+  @override
   Future<void> dispose() => _db.close();
 }

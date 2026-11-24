@@ -73,6 +73,22 @@ flutter:
     - assets/content/en/
     - assets/content/stickers.json
     - assets/content/tracing/
+    - assets/audio/MANIFEST.csv
+    # Each folder below already exists (empty, a .gitkeep placeholder) so
+    # that dropping real .ogg clips at the paths in MANIFEST.csv needs no
+    # pubspec change — a Flutter asset directory entry is not recursive,
+    # so every leaf folder must be listed, not just assets/audio/.
+    - assets/audio/fr/letters/
+    - assets/audio/fr/words/
+    - assets/audio/fr/numbers/
+    - assets/audio/fr/prompts/
+    - assets/audio/fr/praise/
+    - assets/audio/en/letters/
+    - assets/audio/en/words/
+    - assets/audio/en/numbers/
+    - assets/audio/en/prompts/
+    - assets/audio/en/praise/
+    - assets/audio/sfx/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

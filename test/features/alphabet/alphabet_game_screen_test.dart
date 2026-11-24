@@ -17,6 +17,7 @@ import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/features/alphabet/alphabet_game_screen.dart';
 import 'package:mboa_kids/features/rewards/bravo_result.dart';
 import 'package:mboa_kids/shared/widgets/choice_card.dart';
+import 'package:mboa_kids/shared/widgets/mascot.dart';
 
 class _FakeAssetBundle extends CachingAssetBundle {
   _FakeAssetBundle(this.files);
@@ -49,6 +50,44 @@ class _FakeAudioService implements AudioService {
 
   @override
   Future<void> stop() async {}
+}
+
+/// Records every call (in order) and takes a non-trivial, configurable
+/// time to "speak" a prompt or item — long enough that a test can tap
+/// mid-speech and observe whether that tap was ignored (CLAUDE.md section
+/// 10: "toucher le perroquet pendant qu'il parle : ignoré").
+class _RecordingAudioService implements AudioService {
+  _RecordingAudioService({this.speakDelay = const Duration(milliseconds: 200)});
+
+  final List<String> calls = [];
+  final Duration speakDelay;
+
+  @override
+  Future<void> playItem(String itemId) async {
+    calls.add('item:$itemId');
+    await Future<void>.delayed(speakDelay);
+  }
+
+  @override
+  Future<void> playPrompt(String key) async {
+    calls.add('prompt:$key');
+    await Future<void>.delayed(speakDelay);
+  }
+
+  @override
+  Future<void> playSfx(String name) async {
+    calls.add('sfx:$name');
+  }
+
+  @override
+  Future<void> playPraise() async {
+    calls.add('praise');
+  }
+
+  @override
+  Future<void> stop() async {
+    calls.add('stop');
+  }
 }
 
 /// Simulates a voice that never reports completion (CLAUDE.md section 13:
@@ -436,5 +475,116 @@ void main() {
       final best = await repository.bestStarsFor('fr.alphabet.pack1');
       expect(best, greaterThanOrEqualTo(1));
     });
+  });
+
+  group('one instruction at a time (CLAUDE.md section 10)', () {
+    testWidgets(
+      'tapping the mascot repeatedly while it speaks never queues a second instruction, '
+      'and a wrong answer only re-speaks it once on retry',
+      (WidgetTester tester) async {
+        final audio = _RecordingAudioService();
+        await tester.pumpWidget(_buildTestApp(audioService: audio));
+
+        for (var i = 0; i < 30 && find.byType(ChoiceCard).evaluate().isEmpty; i++) {
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        expect(find.byType(ChoiceCard), findsWidgets);
+        expect(
+          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          1,
+          reason: 'the question appearing speaks its instruction exactly once',
+        );
+
+        // 5 rapid taps on the mascot, all while that first instruction is
+        // still "being spoken" (the fake's 200ms delay hasn't elapsed).
+        for (var i = 0; i < 5; i++) {
+          await tester.tap(find.byType(Mascot));
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        expect(
+          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          1,
+          reason: 'every tap landed mid-speech and must have been ignored',
+        );
+
+        // Let the instruction actually finish (playPrompt then playItem,
+        // 200ms each), then a real replay works.
+        await tester.pump(const Duration(milliseconds: 450));
+        await tester.tap(find.byType(Mascot));
+        await tester.pump(const Duration(milliseconds: 10));
+        expect(audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length, 2);
+        await tester.pump(const Duration(milliseconds: 450));
+
+        // Answer whichever choice comes first — correct or wrong, the
+        // same invariant applies either way (retry on wrong, or the next
+        // round on correct): the next question speaks its instruction
+        // exactly once, never twice.
+        await tester.tap(find.byType(ChoiceCard).first);
+        await tester.pump(const Duration(milliseconds: 50));
+
+        final afterAnswerTap = audio.calls.length;
+        // Covers the longer of the two delays (1.5s on correct, 1s on
+        // wrong) plus the next instruction's own playPrompt+playItem
+        // (200ms each) — pumped in small steps (not one big jump) so any
+        // async work in between (e.g. _prepareRound's own DB read) gets
+        // a chance to resolve, same as elsewhere in this file.
+        for (var i = 0; i < 40; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+
+        final spokenAfterAnswering = audio.calls
+            .sublist(afterAnswerTap)
+            .where((c) => c.startsWith('prompt:find_the_letter'))
+            .length;
+        expect(
+          spokenAfterAnswering,
+          1,
+          reason:
+              'the next question (retry on wrong, or the next round on correct) must '
+              'speak its instruction exactly once',
+        );
+      },
+    );
+
+    testWidgets(
+      'an unanswered question repeats its instruction once after 6s, then reveals '
+      'the answer without saying it after 6s more',
+      (WidgetTester tester) async {
+        final audio = _RecordingAudioService(speakDelay: Duration.zero);
+        await tester.pumpWidget(_buildTestApp(audioService: audio));
+
+        for (var i = 0; i < 30 && find.byType(ChoiceCard).evaluate().isEmpty; i++) {
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        expect(
+          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          1,
+        );
+
+        await tester.pump(const Duration(seconds: 6));
+        expect(
+          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          2,
+          reason: '6 unanswered seconds repeats the instruction exactly once',
+        );
+        expect(
+          tester.widgetList<ChoiceCard>(find.byType(ChoiceCard)).any((c) => c.isHinted),
+          isFalse,
+          reason: 'the first timeout only repeats the instruction, it does not reveal anything',
+        );
+
+        await tester.pump(const Duration(seconds: 6));
+        expect(
+          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          2,
+          reason: 'the second timeout reveals the answer silently, it must not speak again',
+        );
+        expect(
+          tester.widgetList<ChoiceCard>(find.byType(ChoiceCard)).where((c) => c.isHinted).length,
+          1,
+          reason: 'exactly the correct choice is now shown via a hint',
+        );
+      },
+    );
   });
 }

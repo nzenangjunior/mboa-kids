@@ -280,19 +280,25 @@ const _promptSpokenText = {
     'find_the_letter': 'Touche la lettre',
     'trace_the_letter': 'Trace la lettre',
     'home_screen': 'Touche pour jouer !',
+    'tap_big_button': 'Touche le gros bouton pour jouer !',
     'island_map': 'Choisis une île',
     'choose_level': 'Choisis un niveau',
     'island_locked': 'Pas encore !',
     'mascot_sleeping': 'La mascotte dort, à bientôt !',
+    'daily_path_intro': 'Des lettres, puis on écrit, puis une étoile !',
+    'daily_path_to_tracing': 'Bravo ! Maintenant on écrit !',
   },
   'en': {
     'find_the_letter': 'Touch the letter',
     'trace_the_letter': 'Trace the letter',
     'home_screen': 'Touch to play!',
+    'tap_big_button': 'Touch the big button to play!',
     'island_map': 'Choose an island',
     'choose_level': 'Choose a level',
     'island_locked': 'Not yet!',
     'mascot_sleeping': 'The mascot is asleep, see you soon!',
+    'daily_path_intro': 'Letters, then writing, then a star!',
+    'daily_path_to_tracing': 'Well done! Now let\'s write!',
   },
 };
 
@@ -300,6 +306,12 @@ const _praiseSpokenText = {
   'fr': ['Bravo !', 'Super !', 'Génial !'],
   'en': ['Well done!', 'Great job!', 'Super!'],
 };
+
+/// Every non-verbal sound effect the app plays, by the name [AudioService
+/// .playSfx] is called with — shared across worlds, since a sound effect
+/// isn't spoken language (CLAUDE.md section 6, path convention
+/// `audio/sfx/<name>.ogg`; see also `assets/audio/MANIFEST.csv`).
+const _sfxNames = ['success_chime', 'soft_error', 'baobab'];
 
 /// The audio service for the given world, wired with the alphabet clips
 /// already known for that world and a TTS fallback for anything missing
@@ -332,12 +344,30 @@ final audioServiceProvider = FutureProvider.family<AudioService, String>((
     praiseSpokenText: _praiseSpokenText[world] ?? const ['Bravo !'],
   );
 
+  // Path convention matching `assets/audio/MANIFEST.csv`: dropping a file
+  // at one of these paths (CLAUDE.md section 6) makes it play instead of
+  // the TTS fallback above, with no code change — this was previously
+  // only wired for letters/numbers, leaving every prompt/praise/sfx
+  // clip unreachable even once recorded.
+  final promptAudioPaths = <String, String>{
+    for (final key in (_promptSpokenText[world] ?? const {}).keys)
+      key: 'audio/$world/prompts/$key.ogg',
+  };
+  final praiseCount = (_praiseSpokenText[world] ?? const ['Bravo !']).length;
+  final praiseAudioPaths = [
+    for (var i = 0; i < praiseCount; i++) 'audio/$world/praise/$i.ogg',
+  ];
+  final sfxAudioPaths = <String, String>{
+    for (final name in _sfxNames) name: 'audio/sfx/$name.ogg',
+  };
+
   return ClipAudioService(
     player: JustAudioClipPlayer(),
     fallback: fallback,
     itemAudioPaths: itemAudioPaths,
-    promptAudioPaths: const {},
-    sfxAudioPaths: const {},
+    promptAudioPaths: promptAudioPaths,
+    sfxAudioPaths: sfxAudioPaths,
+    praiseAudioPaths: praiseAudioPaths,
   );
 });
 

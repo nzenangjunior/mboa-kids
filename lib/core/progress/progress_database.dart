@@ -62,8 +62,23 @@ class SettingsRows extends Table {
   /// How many stickers + golden letters were earned the last time the
   /// album was opened (CLAUDE.md section 10, Refonte visuelle: the home
   /// screen's album icon shows a badge when this is lower than the
-  /// current total).
-  IntColumn get albumLastSeenCount => integer().withDefault(const Constant(0))();
+  /// current total). Null (never recorded yet) is read back as 0 by the
+  /// repository — kept nullable, not `.withDefault()`, like the other
+  /// optional columns above: under the web preview's degraded
+  /// `sharedIndexedDb` persistence, a migration adding a non-nullable
+  /// column with a SQL default did not reliably backfill it on the
+  /// existing settings row, so every later read of this row (any
+  /// column, not just this one) threw a null-check error from drift's
+  /// generated row mapper — reproduced live, see CLAUDE.md section 13.
+  IntColumn get albumLastSeenCount => integer().nullable()();
+
+  /// Whether the home screen's first-visit hint ("touche le gros bouton
+  /// pour jouer !", the mascot pointing at it) has already played once
+  /// (CLAUDE.md section 10, Refonte visuelle) — shown only the first
+  /// time. Null (never recorded) reads back as false — nullable rather
+  /// than `.withDefault()`, for the same reason as [albumLastSeenCount]
+  /// above.
+  BoolColumn get hasShownPlayHint => boolean().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -130,7 +145,7 @@ class ProgressDatabase extends _$ProgressDatabase {
   ProgressDatabase(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -147,6 +162,9 @@ class ProgressDatabase extends _$ProgressDatabase {
       if (from < 4) {
         await m.addColumn(settingsRows, settingsRows.albumLastSeenCount);
         await m.createTable(stickerPositionRows);
+      }
+      if (from < 5) {
+        await m.addColumn(settingsRows, settingsRows.hasShownPlayHint);
       }
     },
   );
