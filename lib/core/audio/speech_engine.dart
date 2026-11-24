@@ -31,6 +31,13 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
   bool _awaitCompletionSet = false;
   Future<void> _queue = Future<void>.value();
 
+  /// Checked once per locale, never again: a device/browser without the
+  /// requested voice is never going to grow one mid-session, so there's
+  /// no reason to pay [_speakTimeout]'s wait on every single call after
+  /// the first — reproduced live, where every failed instruction added a
+  /// multi-second delay that compounded across a whole game.
+  final Map<String, bool> _localeAvailability = {};
+
   /// Bumped by [stop]. A queued [_speakNow] call captures the generation it
   /// was queued under and checks it before doing anything observable, so a
   /// [stop] call effectively drops whatever was still waiting behind the
@@ -63,14 +70,25 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
     await _ensureAwaitsCompletion();
     if (generation != _generation) return;
 
-    if (_currentLocale != locale) {
-      final available = await _tts.isLanguageAvailable(locale);
-      if (available != true) {
+    var available = _localeAvailability[locale];
+    if (available == null) {
+      available = await _tts.isLanguageAvailable(locale) == true;
+      _localeAvailability[locale] = available;
+      if (!available) {
         debugPrint(
           '[AudioService] Aucune voix TTS "$locale" trouvée sur cet '
-          'appareil/navigateur ; la voix par défaut sera utilisée.',
+          'appareil/navigateur ; plus aucune tentative ne sera faite pour '
+          'cette voix cette session (le jeu ne doit jamais attendre une '
+          'voix absente).',
         );
       }
+    }
+    // Never wait on a voice already known absent: speak()/the 4s timeout
+    // below exist for a voice that might still answer, not for one that
+    // has already proven it won't.
+    if (!available) return;
+
+    if (_currentLocale != locale) {
       await _tts.setLanguage(locale);
       _currentLocale = locale;
     }

@@ -1,336 +1,336 @@
-chemin,langue,texte_exact,categorie
-audio/en/prompts/choose_level.ogg,en-GB,Choose a level,consigne
-audio/en/prompts/daily_path_intro.ogg,en-GB,"Letters, then writing, then a star!",consigne
-audio/en/prompts/daily_path_to_tracing.ogg,en-GB,Well done! Now let's write!,consigne
-audio/en/prompts/find_the_letter.ogg,en-GB,Touch the letter,consigne
-audio/en/prompts/home_screen.ogg,en-GB,Touch to play!,consigne
-audio/en/prompts/island_locked.ogg,en-GB,Not yet!,consigne
-audio/en/prompts/island_map.ogg,en-GB,Choose an island,consigne
-audio/en/prompts/mascot_sleeping.ogg,en-GB,"The mascot is asleep, see you soon!",consigne
-audio/en/prompts/tap_big_button.ogg,en-GB,Touch the big button to play!,consigne
-audio/en/prompts/trace_the_letter.ogg,en-GB,Trace the letter,consigne
-audio/fr/prompts/choose_level.ogg,fr-FR,Choisis un niveau,consigne
-audio/fr/prompts/daily_path_intro.ogg,fr-FR,"Des lettres, puis on écrit, puis une étoile !",consigne
-audio/fr/prompts/daily_path_to_tracing.ogg,fr-FR,Bravo ! Maintenant on écrit !,consigne
-audio/fr/prompts/find_the_letter.ogg,fr-FR,Touche la lettre,consigne
-audio/fr/prompts/home_screen.ogg,fr-FR,Touche pour jouer !,consigne
-audio/fr/prompts/island_locked.ogg,fr-FR,Pas encore !,consigne
-audio/fr/prompts/island_map.ogg,fr-FR,Choisis une île,consigne
-audio/fr/prompts/mascot_sleeping.ogg,fr-FR,"La mascotte dort, à bientôt !",consigne
-audio/fr/prompts/tap_big_button.ogg,fr-FR,Touche le gros bouton pour jouer !,consigne
-audio/fr/prompts/trace_the_letter.ogg,fr-FR,Trace la lettre,consigne
-audio/sfx/baobab.ogg,-,Petit son ludique de bruissement/froissement (le baobab qu'on touche),effet-sonore
-audio/sfx/soft_error.ogg,-,"Son doux, non punitif (mauvaise réponse — jamais négatif/buzzer)",effet-sonore
-audio/sfx/success_chime.ogg,-,Petit carillon joyeux et bref (bonne réponse),effet-sonore
-audio/en/praise/0.ogg,en-GB,Well done!,felicitation
-audio/en/praise/1.ogg,en-GB,Great job!,felicitation
-audio/en/praise/2.ogg,en-GB,Super!,felicitation
-audio/fr/praise/0.ogg,fr-FR,Bravo !,felicitation
-audio/fr/praise/1.ogg,fr-FR,Super !,felicitation
-audio/fr/praise/2.ogg,fr-FR,Génial !,felicitation
-audio/en/letters/a.ogg,en-GB,A,lettre
-audio/en/letters/b.ogg,en-GB,B,lettre
-audio/en/letters/c.ogg,en-GB,C,lettre
-audio/en/letters/d.ogg,en-GB,D,lettre
-audio/en/letters/e.ogg,en-GB,E,lettre
-audio/en/letters/f.ogg,en-GB,F,lettre
-audio/en/letters/g.ogg,en-GB,G,lettre
-audio/en/letters/h.ogg,en-GB,H,lettre
-audio/en/letters/i.ogg,en-GB,I,lettre
-audio/en/letters/j.ogg,en-GB,J,lettre
-audio/en/letters/k.ogg,en-GB,K,lettre
-audio/en/letters/l.ogg,en-GB,L,lettre
-audio/en/letters/m.ogg,en-GB,M,lettre
-audio/en/letters/n.ogg,en-GB,N,lettre
-audio/en/letters/o.ogg,en-GB,O,lettre
-audio/en/letters/p.ogg,en-GB,P,lettre
-audio/en/letters/q.ogg,en-GB,Q,lettre
-audio/en/letters/r.ogg,en-GB,R,lettre
-audio/en/letters/s.ogg,en-GB,S,lettre
-audio/en/letters/t.ogg,en-GB,T,lettre
-audio/en/letters/u.ogg,en-GB,U,lettre
-audio/en/letters/v.ogg,en-GB,V,lettre
-audio/en/letters/w.ogg,en-GB,W,lettre
-audio/en/letters/x.ogg,en-GB,X,lettre
-audio/en/letters/y.ogg,en-GB,Y,lettre
-audio/en/letters/z.ogg,en-GB,"Z (se dit « zed », anglais britannique — CLAUDE.md règle 7)",lettre
-audio/fr/letters/a.ogg,fr-FR,A,lettre
-audio/fr/letters/b.ogg,fr-FR,B,lettre
-audio/fr/letters/c.ogg,fr-FR,C,lettre
-audio/fr/letters/d.ogg,fr-FR,D,lettre
-audio/fr/letters/e.ogg,fr-FR,E,lettre
-audio/fr/letters/f.ogg,fr-FR,F,lettre
-audio/fr/letters/g.ogg,fr-FR,G,lettre
-audio/fr/letters/h.ogg,fr-FR,H,lettre
-audio/fr/letters/i.ogg,fr-FR,I,lettre
-audio/fr/letters/j.ogg,fr-FR,J,lettre
-audio/fr/letters/k.ogg,fr-FR,K,lettre
-audio/fr/letters/l.ogg,fr-FR,L,lettre
-audio/fr/letters/m.ogg,fr-FR,M,lettre
-audio/fr/letters/n.ogg,fr-FR,N,lettre
-audio/fr/letters/o.ogg,fr-FR,O,lettre
-audio/fr/letters/p.ogg,fr-FR,P,lettre
-audio/fr/letters/q.ogg,fr-FR,Q,lettre
-audio/fr/letters/r.ogg,fr-FR,R,lettre
-audio/fr/letters/s.ogg,fr-FR,S,lettre
-audio/fr/letters/t.ogg,fr-FR,T,lettre
-audio/fr/letters/u.ogg,fr-FR,U,lettre
-audio/fr/letters/v.ogg,fr-FR,V,lettre
-audio/fr/letters/w.ogg,fr-FR,W,lettre
-audio/fr/letters/x.ogg,fr-FR,X,lettre
-audio/fr/letters/y.ogg,fr-FR,Y,lettre
-audio/fr/letters/z.ogg,fr-FR,Z,lettre
-audio/en/words/apple.ogg,en-GB,apple,mot-vocabulaire
-audio/en/words/ball.ogg,en-GB,ball,mot-vocabulaire
-audio/en/words/cat.ogg,en-GB,cat,mot-vocabulaire
-audio/en/words/dog.ogg,en-GB,dog,mot-vocabulaire
-audio/en/words/elephant.ogg,en-GB,elephant,mot-vocabulaire
-audio/en/words/fox.ogg,en-GB,fox,mot-vocabulaire
-audio/en/words/goat.ogg,en-GB,goat,mot-vocabulaire
-audio/en/words/hat.ogg,en-GB,hat,mot-vocabulaire
-audio/en/words/igloo.ogg,en-GB,igloo,mot-vocabulaire
-audio/en/words/jam.ogg,en-GB,jam,mot-vocabulaire
-audio/en/words/kite.ogg,en-GB,kite,mot-vocabulaire
-audio/en/words/lion.ogg,en-GB,lion,mot-vocabulaire
-audio/en/words/moon.ogg,en-GB,moon,mot-vocabulaire
-audio/en/words/nest.ogg,en-GB,nest,mot-vocabulaire
-audio/en/words/owl.ogg,en-GB,owl,mot-vocabulaire
-audio/en/words/pig.ogg,en-GB,pig,mot-vocabulaire
-audio/en/words/queen.ogg,en-GB,queen,mot-vocabulaire
-audio/en/words/rabbit.ogg,en-GB,rabbit,mot-vocabulaire
-audio/en/words/sun.ogg,en-GB,sun,mot-vocabulaire
-audio/en/words/tiger.ogg,en-GB,tiger,mot-vocabulaire
-audio/en/words/umbrella.ogg,en-GB,umbrella,mot-vocabulaire
-audio/en/words/van.ogg,en-GB,van,mot-vocabulaire
-audio/en/words/whale.ogg,en-GB,whale,mot-vocabulaire
-audio/en/words/x_ray.ogg,en-GB,x-ray,mot-vocabulaire
-audio/en/words/yo_yo.ogg,en-GB,yo-yo,mot-vocabulaire
-audio/en/words/zebra.ogg,en-GB,zebra,mot-vocabulaire
-audio/fr/words/abeille.ogg,fr-FR,abeille,mot-vocabulaire
-audio/fr/words/balle.ogg,fr-FR,balle,mot-vocabulaire
-audio/fr/words/chat.ogg,fr-FR,chat,mot-vocabulaire
-audio/fr/words/dinosaure.ogg,fr-FR,dinosaure,mot-vocabulaire
-audio/fr/words/elephant.ogg,fr-FR,éléphant,mot-vocabulaire
-audio/fr/words/fleur.ogg,fr-FR,fleur,mot-vocabulaire
-audio/fr/words/gateau.ogg,fr-FR,gâteau,mot-vocabulaire
-audio/fr/words/hibou.ogg,fr-FR,hibou,mot-vocabulaire
-audio/fr/words/igloo.ogg,fr-FR,igloo,mot-vocabulaire
-audio/fr/words/jardin.ogg,fr-FR,jardin,mot-vocabulaire
-audio/fr/words/kangourou.ogg,fr-FR,kangourou,mot-vocabulaire
-audio/fr/words/lune.ogg,fr-FR,lune,mot-vocabulaire
-audio/fr/words/maison.ogg,fr-FR,maison,mot-vocabulaire
-audio/fr/words/nuage.ogg,fr-FR,nuage,mot-vocabulaire
-audio/fr/words/oiseau.ogg,fr-FR,oiseau,mot-vocabulaire
-audio/fr/words/poisson.ogg,fr-FR,poisson,mot-vocabulaire
-audio/fr/words/quille.ogg,fr-FR,quille,mot-vocabulaire
-audio/fr/words/robot.ogg,fr-FR,robot,mot-vocabulaire
-audio/fr/words/soleil.ogg,fr-FR,soleil,mot-vocabulaire
-audio/fr/words/tortue.ogg,fr-FR,tortue,mot-vocabulaire
-audio/fr/words/usine.ogg,fr-FR,usine,mot-vocabulaire
-audio/fr/words/voiture.ogg,fr-FR,voiture,mot-vocabulaire
-audio/fr/words/wagon.ogg,fr-FR,wagon,mot-vocabulaire
-audio/fr/words/xylophone.ogg,fr-FR,xylophone,mot-vocabulaire
-audio/fr/words/yaourt.ogg,fr-FR,yaourt,mot-vocabulaire
-audio/fr/words/zebre.ogg,fr-FR,zèbre,mot-vocabulaire
-audio/en/numbers/0.ogg,en-GB,zero,nombre
-audio/en/numbers/1.ogg,en-GB,one,nombre
-audio/en/numbers/10.ogg,en-GB,ten,nombre
-audio/en/numbers/100.ogg,en-GB,one hundred,nombre
-audio/en/numbers/11.ogg,en-GB,eleven,nombre
-audio/en/numbers/12.ogg,en-GB,twelve,nombre
-audio/en/numbers/13.ogg,en-GB,thirteen,nombre
-audio/en/numbers/14.ogg,en-GB,fourteen,nombre
-audio/en/numbers/15.ogg,en-GB,fifteen,nombre
-audio/en/numbers/16.ogg,en-GB,sixteen,nombre
-audio/en/numbers/17.ogg,en-GB,seventeen,nombre
-audio/en/numbers/18.ogg,en-GB,eighteen,nombre
-audio/en/numbers/19.ogg,en-GB,nineteen,nombre
-audio/en/numbers/2.ogg,en-GB,two,nombre
-audio/en/numbers/20.ogg,en-GB,twenty,nombre
-audio/en/numbers/21.ogg,en-GB,twenty-one,nombre
-audio/en/numbers/22.ogg,en-GB,twenty-two,nombre
-audio/en/numbers/23.ogg,en-GB,twenty-three,nombre
-audio/en/numbers/24.ogg,en-GB,twenty-four,nombre
-audio/en/numbers/25.ogg,en-GB,twenty-five,nombre
-audio/en/numbers/26.ogg,en-GB,twenty-six,nombre
-audio/en/numbers/27.ogg,en-GB,twenty-seven,nombre
-audio/en/numbers/28.ogg,en-GB,twenty-eight,nombre
-audio/en/numbers/29.ogg,en-GB,twenty-nine,nombre
-audio/en/numbers/3.ogg,en-GB,three,nombre
-audio/en/numbers/30.ogg,en-GB,thirty,nombre
-audio/en/numbers/31.ogg,en-GB,thirty-one,nombre
-audio/en/numbers/32.ogg,en-GB,thirty-two,nombre
-audio/en/numbers/33.ogg,en-GB,thirty-three,nombre
-audio/en/numbers/34.ogg,en-GB,thirty-four,nombre
-audio/en/numbers/35.ogg,en-GB,thirty-five,nombre
-audio/en/numbers/36.ogg,en-GB,thirty-six,nombre
-audio/en/numbers/37.ogg,en-GB,thirty-seven,nombre
-audio/en/numbers/38.ogg,en-GB,thirty-eight,nombre
-audio/en/numbers/39.ogg,en-GB,thirty-nine,nombre
-audio/en/numbers/4.ogg,en-GB,four,nombre
-audio/en/numbers/40.ogg,en-GB,forty,nombre
-audio/en/numbers/41.ogg,en-GB,forty-one,nombre
-audio/en/numbers/42.ogg,en-GB,forty-two,nombre
-audio/en/numbers/43.ogg,en-GB,forty-three,nombre
-audio/en/numbers/44.ogg,en-GB,forty-four,nombre
-audio/en/numbers/45.ogg,en-GB,forty-five,nombre
-audio/en/numbers/46.ogg,en-GB,forty-six,nombre
-audio/en/numbers/47.ogg,en-GB,forty-seven,nombre
-audio/en/numbers/48.ogg,en-GB,forty-eight,nombre
-audio/en/numbers/49.ogg,en-GB,forty-nine,nombre
-audio/en/numbers/5.ogg,en-GB,five,nombre
-audio/en/numbers/50.ogg,en-GB,fifty,nombre
-audio/en/numbers/51.ogg,en-GB,fifty-one,nombre
-audio/en/numbers/52.ogg,en-GB,fifty-two,nombre
-audio/en/numbers/53.ogg,en-GB,fifty-three,nombre
-audio/en/numbers/54.ogg,en-GB,fifty-four,nombre
-audio/en/numbers/55.ogg,en-GB,fifty-five,nombre
-audio/en/numbers/56.ogg,en-GB,fifty-six,nombre
-audio/en/numbers/57.ogg,en-GB,fifty-seven,nombre
-audio/en/numbers/58.ogg,en-GB,fifty-eight,nombre
-audio/en/numbers/59.ogg,en-GB,fifty-nine,nombre
-audio/en/numbers/6.ogg,en-GB,six,nombre
-audio/en/numbers/60.ogg,en-GB,sixty,nombre
-audio/en/numbers/61.ogg,en-GB,sixty-one,nombre
-audio/en/numbers/62.ogg,en-GB,sixty-two,nombre
-audio/en/numbers/63.ogg,en-GB,sixty-three,nombre
-audio/en/numbers/64.ogg,en-GB,sixty-four,nombre
-audio/en/numbers/65.ogg,en-GB,sixty-five,nombre
-audio/en/numbers/66.ogg,en-GB,sixty-six,nombre
-audio/en/numbers/67.ogg,en-GB,sixty-seven,nombre
-audio/en/numbers/68.ogg,en-GB,sixty-eight,nombre
-audio/en/numbers/69.ogg,en-GB,sixty-nine,nombre
-audio/en/numbers/7.ogg,en-GB,seven,nombre
-audio/en/numbers/70.ogg,en-GB,seventy,nombre
-audio/en/numbers/71.ogg,en-GB,seventy-one,nombre
-audio/en/numbers/72.ogg,en-GB,seventy-two,nombre
-audio/en/numbers/73.ogg,en-GB,seventy-three,nombre
-audio/en/numbers/74.ogg,en-GB,seventy-four,nombre
-audio/en/numbers/75.ogg,en-GB,seventy-five,nombre
-audio/en/numbers/76.ogg,en-GB,seventy-six,nombre
-audio/en/numbers/77.ogg,en-GB,seventy-seven,nombre
-audio/en/numbers/78.ogg,en-GB,seventy-eight,nombre
-audio/en/numbers/79.ogg,en-GB,seventy-nine,nombre
-audio/en/numbers/8.ogg,en-GB,eight,nombre
-audio/en/numbers/80.ogg,en-GB,eighty,nombre
-audio/en/numbers/81.ogg,en-GB,eighty-one,nombre
-audio/en/numbers/82.ogg,en-GB,eighty-two,nombre
-audio/en/numbers/83.ogg,en-GB,eighty-three,nombre
-audio/en/numbers/84.ogg,en-GB,eighty-four,nombre
-audio/en/numbers/85.ogg,en-GB,eighty-five,nombre
-audio/en/numbers/86.ogg,en-GB,eighty-six,nombre
-audio/en/numbers/87.ogg,en-GB,eighty-seven,nombre
-audio/en/numbers/88.ogg,en-GB,eighty-eight,nombre
-audio/en/numbers/89.ogg,en-GB,eighty-nine,nombre
-audio/en/numbers/9.ogg,en-GB,nine,nombre
-audio/en/numbers/90.ogg,en-GB,ninety,nombre
-audio/en/numbers/91.ogg,en-GB,ninety-one,nombre
-audio/en/numbers/92.ogg,en-GB,ninety-two,nombre
-audio/en/numbers/93.ogg,en-GB,ninety-three,nombre
-audio/en/numbers/94.ogg,en-GB,ninety-four,nombre
-audio/en/numbers/95.ogg,en-GB,ninety-five,nombre
-audio/en/numbers/96.ogg,en-GB,ninety-six,nombre
-audio/en/numbers/97.ogg,en-GB,ninety-seven,nombre
-audio/en/numbers/98.ogg,en-GB,ninety-eight,nombre
-audio/en/numbers/99.ogg,en-GB,ninety-nine,nombre
-audio/fr/numbers/0.ogg,fr-FR,zéro,nombre
-audio/fr/numbers/1.ogg,fr-FR,un,nombre
-audio/fr/numbers/10.ogg,fr-FR,dix,nombre
-audio/fr/numbers/100.ogg,fr-FR,cent,nombre
-audio/fr/numbers/11.ogg,fr-FR,onze,nombre
-audio/fr/numbers/12.ogg,fr-FR,douze,nombre
-audio/fr/numbers/13.ogg,fr-FR,treize,nombre
-audio/fr/numbers/14.ogg,fr-FR,quatorze,nombre
-audio/fr/numbers/15.ogg,fr-FR,quinze,nombre
-audio/fr/numbers/16.ogg,fr-FR,seize,nombre
-audio/fr/numbers/17.ogg,fr-FR,dix-sept,nombre
-audio/fr/numbers/18.ogg,fr-FR,dix-huit,nombre
-audio/fr/numbers/19.ogg,fr-FR,dix-neuf,nombre
-audio/fr/numbers/2.ogg,fr-FR,deux,nombre
-audio/fr/numbers/20.ogg,fr-FR,vingt,nombre
-audio/fr/numbers/21.ogg,fr-FR,vingt et un,nombre
-audio/fr/numbers/22.ogg,fr-FR,vingt-deux,nombre
-audio/fr/numbers/23.ogg,fr-FR,vingt-trois,nombre
-audio/fr/numbers/24.ogg,fr-FR,vingt-quatre,nombre
-audio/fr/numbers/25.ogg,fr-FR,vingt-cinq,nombre
-audio/fr/numbers/26.ogg,fr-FR,vingt-six,nombre
-audio/fr/numbers/27.ogg,fr-FR,vingt-sept,nombre
-audio/fr/numbers/28.ogg,fr-FR,vingt-huit,nombre
-audio/fr/numbers/29.ogg,fr-FR,vingt-neuf,nombre
-audio/fr/numbers/3.ogg,fr-FR,trois,nombre
-audio/fr/numbers/30.ogg,fr-FR,trente,nombre
-audio/fr/numbers/31.ogg,fr-FR,trente et un,nombre
-audio/fr/numbers/32.ogg,fr-FR,trente-deux,nombre
-audio/fr/numbers/33.ogg,fr-FR,trente-trois,nombre
-audio/fr/numbers/34.ogg,fr-FR,trente-quatre,nombre
-audio/fr/numbers/35.ogg,fr-FR,trente-cinq,nombre
-audio/fr/numbers/36.ogg,fr-FR,trente-six,nombre
-audio/fr/numbers/37.ogg,fr-FR,trente-sept,nombre
-audio/fr/numbers/38.ogg,fr-FR,trente-huit,nombre
-audio/fr/numbers/39.ogg,fr-FR,trente-neuf,nombre
-audio/fr/numbers/4.ogg,fr-FR,quatre,nombre
-audio/fr/numbers/40.ogg,fr-FR,quarante,nombre
-audio/fr/numbers/41.ogg,fr-FR,quarante et un,nombre
-audio/fr/numbers/42.ogg,fr-FR,quarante-deux,nombre
-audio/fr/numbers/43.ogg,fr-FR,quarante-trois,nombre
-audio/fr/numbers/44.ogg,fr-FR,quarante-quatre,nombre
-audio/fr/numbers/45.ogg,fr-FR,quarante-cinq,nombre
-audio/fr/numbers/46.ogg,fr-FR,quarante-six,nombre
-audio/fr/numbers/47.ogg,fr-FR,quarante-sept,nombre
-audio/fr/numbers/48.ogg,fr-FR,quarante-huit,nombre
-audio/fr/numbers/49.ogg,fr-FR,quarante-neuf,nombre
-audio/fr/numbers/5.ogg,fr-FR,cinq,nombre
-audio/fr/numbers/50.ogg,fr-FR,cinquante,nombre
-audio/fr/numbers/51.ogg,fr-FR,cinquante et un,nombre
-audio/fr/numbers/52.ogg,fr-FR,cinquante-deux,nombre
-audio/fr/numbers/53.ogg,fr-FR,cinquante-trois,nombre
-audio/fr/numbers/54.ogg,fr-FR,cinquante-quatre,nombre
-audio/fr/numbers/55.ogg,fr-FR,cinquante-cinq,nombre
-audio/fr/numbers/56.ogg,fr-FR,cinquante-six,nombre
-audio/fr/numbers/57.ogg,fr-FR,cinquante-sept,nombre
-audio/fr/numbers/58.ogg,fr-FR,cinquante-huit,nombre
-audio/fr/numbers/59.ogg,fr-FR,cinquante-neuf,nombre
-audio/fr/numbers/6.ogg,fr-FR,six,nombre
-audio/fr/numbers/60.ogg,fr-FR,soixante,nombre
-audio/fr/numbers/61.ogg,fr-FR,soixante et un,nombre
-audio/fr/numbers/62.ogg,fr-FR,soixante-deux,nombre
-audio/fr/numbers/63.ogg,fr-FR,soixante-trois,nombre
-audio/fr/numbers/64.ogg,fr-FR,soixante-quatre,nombre
-audio/fr/numbers/65.ogg,fr-FR,soixante-cinq,nombre
-audio/fr/numbers/66.ogg,fr-FR,soixante-six,nombre
-audio/fr/numbers/67.ogg,fr-FR,soixante-sept,nombre
-audio/fr/numbers/68.ogg,fr-FR,soixante-huit,nombre
-audio/fr/numbers/69.ogg,fr-FR,soixante-neuf,nombre
-audio/fr/numbers/7.ogg,fr-FR,sept,nombre
-audio/fr/numbers/70.ogg,fr-FR,soixante-dix,nombre
-audio/fr/numbers/71.ogg,fr-FR,soixante et onze,nombre
-audio/fr/numbers/72.ogg,fr-FR,soixante-douze,nombre
-audio/fr/numbers/73.ogg,fr-FR,soixante-treize,nombre
-audio/fr/numbers/74.ogg,fr-FR,soixante-quatorze,nombre
-audio/fr/numbers/75.ogg,fr-FR,soixante-quinze,nombre
-audio/fr/numbers/76.ogg,fr-FR,soixante-seize,nombre
-audio/fr/numbers/77.ogg,fr-FR,soixante-dix-sept,nombre
-audio/fr/numbers/78.ogg,fr-FR,soixante-dix-huit,nombre
-audio/fr/numbers/79.ogg,fr-FR,soixante-dix-neuf,nombre
-audio/fr/numbers/8.ogg,fr-FR,huit,nombre
-audio/fr/numbers/80.ogg,fr-FR,quatre-vingts,nombre
-audio/fr/numbers/81.ogg,fr-FR,quatre-vingt-un,nombre
-audio/fr/numbers/82.ogg,fr-FR,quatre-vingt-deux,nombre
-audio/fr/numbers/83.ogg,fr-FR,quatre-vingt-trois,nombre
-audio/fr/numbers/84.ogg,fr-FR,quatre-vingt-quatre,nombre
-audio/fr/numbers/85.ogg,fr-FR,quatre-vingt-cinq,nombre
-audio/fr/numbers/86.ogg,fr-FR,quatre-vingt-six,nombre
-audio/fr/numbers/87.ogg,fr-FR,quatre-vingt-sept,nombre
-audio/fr/numbers/88.ogg,fr-FR,quatre-vingt-huit,nombre
-audio/fr/numbers/89.ogg,fr-FR,quatre-vingt-neuf,nombre
-audio/fr/numbers/9.ogg,fr-FR,neuf,nombre
-audio/fr/numbers/90.ogg,fr-FR,quatre-vingt-dix,nombre
-audio/fr/numbers/91.ogg,fr-FR,quatre-vingt-onze,nombre
-audio/fr/numbers/92.ogg,fr-FR,quatre-vingt-douze,nombre
-audio/fr/numbers/93.ogg,fr-FR,quatre-vingt-treize,nombre
-audio/fr/numbers/94.ogg,fr-FR,quatre-vingt-quatorze,nombre
-audio/fr/numbers/95.ogg,fr-FR,quatre-vingt-quinze,nombre
-audio/fr/numbers/96.ogg,fr-FR,quatre-vingt-seize,nombre
-audio/fr/numbers/97.ogg,fr-FR,quatre-vingt-dix-sept,nombre
-audio/fr/numbers/98.ogg,fr-FR,quatre-vingt-dix-huit,nombre
-audio/fr/numbers/99.ogg,fr-FR,quatre-vingt-dix-neuf,nombre
+chemin,langue,texte_exact,categorie,note
+audio/en/prompts/choose_level.ogg,en-GB,Choose a level,consigne,
+audio/en/prompts/daily_path_intro.ogg,en-GB,"Letters, then writing, then a star!",consigne,
+audio/en/prompts/daily_path_to_tracing.ogg,en-GB,Well done! Now let's write!,consigne,
+audio/en/prompts/find_the_letter.ogg,en-GB,Touch the letter,consigne,"Suivi en code, sans aucun silence en fin de clip, par le clip de la lettre demandée (voir la note sur les lignes « lettre ») pour former une seule phrase parlée — jamais deux phrases séparées."
+audio/en/prompts/home_screen.ogg,en-GB,Touch to play!,consigne,
+audio/en/prompts/island_locked.ogg,en-GB,Not yet!,consigne,
+audio/en/prompts/island_map.ogg,en-GB,Choose an island,consigne,
+audio/en/prompts/mascot_sleeping.ogg,en-GB,"The mascot is asleep, see you soon!",consigne,
+audio/en/prompts/tap_big_button.ogg,en-GB,Touch the big button to play!,consigne,
+audio/en/prompts/trace_the_letter.ogg,en-GB,Trace the letter,consigne,"Suivi en code, sans aucun silence en fin de clip, par le clip de la lettre demandée (voir la note sur les lignes « lettre ») pour former une seule phrase parlée — jamais deux phrases séparées."
+audio/fr/prompts/choose_level.ogg,fr-FR,Choisis un niveau,consigne,
+audio/fr/prompts/daily_path_intro.ogg,fr-FR,"Des lettres, puis on écrit, puis une étoile !",consigne,
+audio/fr/prompts/daily_path_to_tracing.ogg,fr-FR,Bravo ! Maintenant on écrit !,consigne,
+audio/fr/prompts/find_the_letter.ogg,fr-FR,Touche la lettre,consigne,"Suivi en code, sans aucun silence en fin de clip, par le clip de la lettre demandée (voir la note sur les lignes « lettre ») pour former une seule phrase parlée — jamais deux phrases séparées."
+audio/fr/prompts/home_screen.ogg,fr-FR,Touche pour jouer !,consigne,
+audio/fr/prompts/island_locked.ogg,fr-FR,Pas encore !,consigne,
+audio/fr/prompts/island_map.ogg,fr-FR,Choisis une île,consigne,
+audio/fr/prompts/mascot_sleeping.ogg,fr-FR,"La mascotte dort, à bientôt !",consigne,
+audio/fr/prompts/tap_big_button.ogg,fr-FR,Touche le gros bouton pour jouer !,consigne,
+audio/fr/prompts/trace_the_letter.ogg,fr-FR,Trace la lettre,consigne,"Suivi en code, sans aucun silence en fin de clip, par le clip de la lettre demandée (voir la note sur les lignes « lettre ») pour former une seule phrase parlée — jamais deux phrases séparées."
+audio/sfx/baobab.ogg,-,Petit son ludique de bruissement/froissement (le baobab qu'on touche),effet-sonore,
+audio/sfx/soft_error.ogg,-,"Son doux, non punitif (mauvaise réponse — jamais négatif/buzzer)",effet-sonore,
+audio/sfx/success_chime.ogg,-,Petit carillon joyeux et bref (bonne réponse),effet-sonore,
+audio/en/praise/0.ogg,en-GB,Well done!,felicitation,
+audio/en/praise/1.ogg,en-GB,Great job!,felicitation,
+audio/en/praise/2.ogg,en-GB,Super!,felicitation,
+audio/fr/praise/0.ogg,fr-FR,Bravo !,felicitation,
+audio/fr/praise/1.ogg,fr-FR,Super !,felicitation,
+audio/fr/praise/2.ogg,fr-FR,Génial !,felicitation,
+audio/en/letters/a.ogg,en-GB,A,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/b.ogg,en-GB,B,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/c.ogg,en-GB,C,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/d.ogg,en-GB,D,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/e.ogg,en-GB,E,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/f.ogg,en-GB,F,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/g.ogg,en-GB,G,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/h.ogg,en-GB,H,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/i.ogg,en-GB,I,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/j.ogg,en-GB,J,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/k.ogg,en-GB,K,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/l.ogg,en-GB,L,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/m.ogg,en-GB,M,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/n.ogg,en-GB,N,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/o.ogg,en-GB,O,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/p.ogg,en-GB,P,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/q.ogg,en-GB,Q,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/r.ogg,en-GB,R,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/s.ogg,en-GB,S,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/t.ogg,en-GB,T,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/u.ogg,en-GB,U,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/v.ogg,en-GB,V,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/w.ogg,en-GB,W,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/x.ogg,en-GB,X,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/y.ogg,en-GB,Y,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/letters/z.ogg,en-GB,"Z (se dit « zed », anglais britannique — CLAUDE.md règle 7)",lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/a.ogg,fr-FR,A,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/b.ogg,fr-FR,B,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/c.ogg,fr-FR,C,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/d.ogg,fr-FR,D,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/e.ogg,fr-FR,E,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/f.ogg,fr-FR,F,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/g.ogg,fr-FR,G,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/h.ogg,fr-FR,H,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/i.ogg,fr-FR,I,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/j.ogg,fr-FR,J,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/k.ogg,fr-FR,K,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/l.ogg,fr-FR,L,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/m.ogg,fr-FR,M,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/n.ogg,fr-FR,N,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/o.ogg,fr-FR,O,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/p.ogg,fr-FR,P,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/q.ogg,fr-FR,Q,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/r.ogg,fr-FR,R,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/s.ogg,fr-FR,S,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/t.ogg,fr-FR,T,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/u.ogg,fr-FR,U,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/v.ogg,fr-FR,V,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/w.ogg,fr-FR,W,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/x.ogg,fr-FR,X,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/y.ogg,fr-FR,Y,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/fr/letters/z.ogg,fr-FR,Z,lettre,Enchaîné en code juste après le clip de consigne correspondant pour former une seule phrase parlée (ex. « Touche la lettre » + « B »). Aucun silence en début de clip.
+audio/en/words/apple.ogg,en-GB,apple,mot-vocabulaire,
+audio/en/words/ball.ogg,en-GB,ball,mot-vocabulaire,
+audio/en/words/cat.ogg,en-GB,cat,mot-vocabulaire,
+audio/en/words/dog.ogg,en-GB,dog,mot-vocabulaire,
+audio/en/words/elephant.ogg,en-GB,elephant,mot-vocabulaire,
+audio/en/words/fox.ogg,en-GB,fox,mot-vocabulaire,
+audio/en/words/goat.ogg,en-GB,goat,mot-vocabulaire,
+audio/en/words/hat.ogg,en-GB,hat,mot-vocabulaire,
+audio/en/words/igloo.ogg,en-GB,igloo,mot-vocabulaire,
+audio/en/words/jam.ogg,en-GB,jam,mot-vocabulaire,
+audio/en/words/kite.ogg,en-GB,kite,mot-vocabulaire,
+audio/en/words/lion.ogg,en-GB,lion,mot-vocabulaire,
+audio/en/words/moon.ogg,en-GB,moon,mot-vocabulaire,
+audio/en/words/nest.ogg,en-GB,nest,mot-vocabulaire,
+audio/en/words/owl.ogg,en-GB,owl,mot-vocabulaire,
+audio/en/words/pig.ogg,en-GB,pig,mot-vocabulaire,
+audio/en/words/queen.ogg,en-GB,queen,mot-vocabulaire,
+audio/en/words/rabbit.ogg,en-GB,rabbit,mot-vocabulaire,
+audio/en/words/sun.ogg,en-GB,sun,mot-vocabulaire,
+audio/en/words/tiger.ogg,en-GB,tiger,mot-vocabulaire,
+audio/en/words/umbrella.ogg,en-GB,umbrella,mot-vocabulaire,
+audio/en/words/van.ogg,en-GB,van,mot-vocabulaire,
+audio/en/words/whale.ogg,en-GB,whale,mot-vocabulaire,
+audio/en/words/x_ray.ogg,en-GB,x-ray,mot-vocabulaire,
+audio/en/words/yo_yo.ogg,en-GB,yo-yo,mot-vocabulaire,
+audio/en/words/zebra.ogg,en-GB,zebra,mot-vocabulaire,
+audio/fr/words/abeille.ogg,fr-FR,abeille,mot-vocabulaire,
+audio/fr/words/balle.ogg,fr-FR,balle,mot-vocabulaire,
+audio/fr/words/chat.ogg,fr-FR,chat,mot-vocabulaire,
+audio/fr/words/dinosaure.ogg,fr-FR,dinosaure,mot-vocabulaire,
+audio/fr/words/elephant.ogg,fr-FR,éléphant,mot-vocabulaire,
+audio/fr/words/fleur.ogg,fr-FR,fleur,mot-vocabulaire,
+audio/fr/words/gateau.ogg,fr-FR,gâteau,mot-vocabulaire,
+audio/fr/words/hibou.ogg,fr-FR,hibou,mot-vocabulaire,
+audio/fr/words/igloo.ogg,fr-FR,igloo,mot-vocabulaire,
+audio/fr/words/jardin.ogg,fr-FR,jardin,mot-vocabulaire,
+audio/fr/words/kangourou.ogg,fr-FR,kangourou,mot-vocabulaire,
+audio/fr/words/lune.ogg,fr-FR,lune,mot-vocabulaire,
+audio/fr/words/maison.ogg,fr-FR,maison,mot-vocabulaire,
+audio/fr/words/nuage.ogg,fr-FR,nuage,mot-vocabulaire,
+audio/fr/words/oiseau.ogg,fr-FR,oiseau,mot-vocabulaire,
+audio/fr/words/poisson.ogg,fr-FR,poisson,mot-vocabulaire,
+audio/fr/words/quille.ogg,fr-FR,quille,mot-vocabulaire,
+audio/fr/words/robot.ogg,fr-FR,robot,mot-vocabulaire,
+audio/fr/words/soleil.ogg,fr-FR,soleil,mot-vocabulaire,
+audio/fr/words/tortue.ogg,fr-FR,tortue,mot-vocabulaire,
+audio/fr/words/usine.ogg,fr-FR,usine,mot-vocabulaire,
+audio/fr/words/voiture.ogg,fr-FR,voiture,mot-vocabulaire,
+audio/fr/words/wagon.ogg,fr-FR,wagon,mot-vocabulaire,
+audio/fr/words/xylophone.ogg,fr-FR,xylophone,mot-vocabulaire,
+audio/fr/words/yaourt.ogg,fr-FR,yaourt,mot-vocabulaire,
+audio/fr/words/zebre.ogg,fr-FR,zèbre,mot-vocabulaire,
+audio/en/numbers/0.ogg,en-GB,zero,nombre,
+audio/en/numbers/1.ogg,en-GB,one,nombre,
+audio/en/numbers/10.ogg,en-GB,ten,nombre,
+audio/en/numbers/100.ogg,en-GB,one hundred,nombre,
+audio/en/numbers/11.ogg,en-GB,eleven,nombre,
+audio/en/numbers/12.ogg,en-GB,twelve,nombre,
+audio/en/numbers/13.ogg,en-GB,thirteen,nombre,
+audio/en/numbers/14.ogg,en-GB,fourteen,nombre,
+audio/en/numbers/15.ogg,en-GB,fifteen,nombre,
+audio/en/numbers/16.ogg,en-GB,sixteen,nombre,
+audio/en/numbers/17.ogg,en-GB,seventeen,nombre,
+audio/en/numbers/18.ogg,en-GB,eighteen,nombre,
+audio/en/numbers/19.ogg,en-GB,nineteen,nombre,
+audio/en/numbers/2.ogg,en-GB,two,nombre,
+audio/en/numbers/20.ogg,en-GB,twenty,nombre,
+audio/en/numbers/21.ogg,en-GB,twenty-one,nombre,
+audio/en/numbers/22.ogg,en-GB,twenty-two,nombre,
+audio/en/numbers/23.ogg,en-GB,twenty-three,nombre,
+audio/en/numbers/24.ogg,en-GB,twenty-four,nombre,
+audio/en/numbers/25.ogg,en-GB,twenty-five,nombre,
+audio/en/numbers/26.ogg,en-GB,twenty-six,nombre,
+audio/en/numbers/27.ogg,en-GB,twenty-seven,nombre,
+audio/en/numbers/28.ogg,en-GB,twenty-eight,nombre,
+audio/en/numbers/29.ogg,en-GB,twenty-nine,nombre,
+audio/en/numbers/3.ogg,en-GB,three,nombre,
+audio/en/numbers/30.ogg,en-GB,thirty,nombre,
+audio/en/numbers/31.ogg,en-GB,thirty-one,nombre,
+audio/en/numbers/32.ogg,en-GB,thirty-two,nombre,
+audio/en/numbers/33.ogg,en-GB,thirty-three,nombre,
+audio/en/numbers/34.ogg,en-GB,thirty-four,nombre,
+audio/en/numbers/35.ogg,en-GB,thirty-five,nombre,
+audio/en/numbers/36.ogg,en-GB,thirty-six,nombre,
+audio/en/numbers/37.ogg,en-GB,thirty-seven,nombre,
+audio/en/numbers/38.ogg,en-GB,thirty-eight,nombre,
+audio/en/numbers/39.ogg,en-GB,thirty-nine,nombre,
+audio/en/numbers/4.ogg,en-GB,four,nombre,
+audio/en/numbers/40.ogg,en-GB,forty,nombre,
+audio/en/numbers/41.ogg,en-GB,forty-one,nombre,
+audio/en/numbers/42.ogg,en-GB,forty-two,nombre,
+audio/en/numbers/43.ogg,en-GB,forty-three,nombre,
+audio/en/numbers/44.ogg,en-GB,forty-four,nombre,
+audio/en/numbers/45.ogg,en-GB,forty-five,nombre,
+audio/en/numbers/46.ogg,en-GB,forty-six,nombre,
+audio/en/numbers/47.ogg,en-GB,forty-seven,nombre,
+audio/en/numbers/48.ogg,en-GB,forty-eight,nombre,
+audio/en/numbers/49.ogg,en-GB,forty-nine,nombre,
+audio/en/numbers/5.ogg,en-GB,five,nombre,
+audio/en/numbers/50.ogg,en-GB,fifty,nombre,
+audio/en/numbers/51.ogg,en-GB,fifty-one,nombre,
+audio/en/numbers/52.ogg,en-GB,fifty-two,nombre,
+audio/en/numbers/53.ogg,en-GB,fifty-three,nombre,
+audio/en/numbers/54.ogg,en-GB,fifty-four,nombre,
+audio/en/numbers/55.ogg,en-GB,fifty-five,nombre,
+audio/en/numbers/56.ogg,en-GB,fifty-six,nombre,
+audio/en/numbers/57.ogg,en-GB,fifty-seven,nombre,
+audio/en/numbers/58.ogg,en-GB,fifty-eight,nombre,
+audio/en/numbers/59.ogg,en-GB,fifty-nine,nombre,
+audio/en/numbers/6.ogg,en-GB,six,nombre,
+audio/en/numbers/60.ogg,en-GB,sixty,nombre,
+audio/en/numbers/61.ogg,en-GB,sixty-one,nombre,
+audio/en/numbers/62.ogg,en-GB,sixty-two,nombre,
+audio/en/numbers/63.ogg,en-GB,sixty-three,nombre,
+audio/en/numbers/64.ogg,en-GB,sixty-four,nombre,
+audio/en/numbers/65.ogg,en-GB,sixty-five,nombre,
+audio/en/numbers/66.ogg,en-GB,sixty-six,nombre,
+audio/en/numbers/67.ogg,en-GB,sixty-seven,nombre,
+audio/en/numbers/68.ogg,en-GB,sixty-eight,nombre,
+audio/en/numbers/69.ogg,en-GB,sixty-nine,nombre,
+audio/en/numbers/7.ogg,en-GB,seven,nombre,
+audio/en/numbers/70.ogg,en-GB,seventy,nombre,
+audio/en/numbers/71.ogg,en-GB,seventy-one,nombre,
+audio/en/numbers/72.ogg,en-GB,seventy-two,nombre,
+audio/en/numbers/73.ogg,en-GB,seventy-three,nombre,
+audio/en/numbers/74.ogg,en-GB,seventy-four,nombre,
+audio/en/numbers/75.ogg,en-GB,seventy-five,nombre,
+audio/en/numbers/76.ogg,en-GB,seventy-six,nombre,
+audio/en/numbers/77.ogg,en-GB,seventy-seven,nombre,
+audio/en/numbers/78.ogg,en-GB,seventy-eight,nombre,
+audio/en/numbers/79.ogg,en-GB,seventy-nine,nombre,
+audio/en/numbers/8.ogg,en-GB,eight,nombre,
+audio/en/numbers/80.ogg,en-GB,eighty,nombre,
+audio/en/numbers/81.ogg,en-GB,eighty-one,nombre,
+audio/en/numbers/82.ogg,en-GB,eighty-two,nombre,
+audio/en/numbers/83.ogg,en-GB,eighty-three,nombre,
+audio/en/numbers/84.ogg,en-GB,eighty-four,nombre,
+audio/en/numbers/85.ogg,en-GB,eighty-five,nombre,
+audio/en/numbers/86.ogg,en-GB,eighty-six,nombre,
+audio/en/numbers/87.ogg,en-GB,eighty-seven,nombre,
+audio/en/numbers/88.ogg,en-GB,eighty-eight,nombre,
+audio/en/numbers/89.ogg,en-GB,eighty-nine,nombre,
+audio/en/numbers/9.ogg,en-GB,nine,nombre,
+audio/en/numbers/90.ogg,en-GB,ninety,nombre,
+audio/en/numbers/91.ogg,en-GB,ninety-one,nombre,
+audio/en/numbers/92.ogg,en-GB,ninety-two,nombre,
+audio/en/numbers/93.ogg,en-GB,ninety-three,nombre,
+audio/en/numbers/94.ogg,en-GB,ninety-four,nombre,
+audio/en/numbers/95.ogg,en-GB,ninety-five,nombre,
+audio/en/numbers/96.ogg,en-GB,ninety-six,nombre,
+audio/en/numbers/97.ogg,en-GB,ninety-seven,nombre,
+audio/en/numbers/98.ogg,en-GB,ninety-eight,nombre,
+audio/en/numbers/99.ogg,en-GB,ninety-nine,nombre,
+audio/fr/numbers/0.ogg,fr-FR,zéro,nombre,
+audio/fr/numbers/1.ogg,fr-FR,un,nombre,
+audio/fr/numbers/10.ogg,fr-FR,dix,nombre,
+audio/fr/numbers/100.ogg,fr-FR,cent,nombre,
+audio/fr/numbers/11.ogg,fr-FR,onze,nombre,
+audio/fr/numbers/12.ogg,fr-FR,douze,nombre,
+audio/fr/numbers/13.ogg,fr-FR,treize,nombre,
+audio/fr/numbers/14.ogg,fr-FR,quatorze,nombre,
+audio/fr/numbers/15.ogg,fr-FR,quinze,nombre,
+audio/fr/numbers/16.ogg,fr-FR,seize,nombre,
+audio/fr/numbers/17.ogg,fr-FR,dix-sept,nombre,
+audio/fr/numbers/18.ogg,fr-FR,dix-huit,nombre,
+audio/fr/numbers/19.ogg,fr-FR,dix-neuf,nombre,
+audio/fr/numbers/2.ogg,fr-FR,deux,nombre,
+audio/fr/numbers/20.ogg,fr-FR,vingt,nombre,
+audio/fr/numbers/21.ogg,fr-FR,vingt et un,nombre,
+audio/fr/numbers/22.ogg,fr-FR,vingt-deux,nombre,
+audio/fr/numbers/23.ogg,fr-FR,vingt-trois,nombre,
+audio/fr/numbers/24.ogg,fr-FR,vingt-quatre,nombre,
+audio/fr/numbers/25.ogg,fr-FR,vingt-cinq,nombre,
+audio/fr/numbers/26.ogg,fr-FR,vingt-six,nombre,
+audio/fr/numbers/27.ogg,fr-FR,vingt-sept,nombre,
+audio/fr/numbers/28.ogg,fr-FR,vingt-huit,nombre,
+audio/fr/numbers/29.ogg,fr-FR,vingt-neuf,nombre,
+audio/fr/numbers/3.ogg,fr-FR,trois,nombre,
+audio/fr/numbers/30.ogg,fr-FR,trente,nombre,
+audio/fr/numbers/31.ogg,fr-FR,trente et un,nombre,
+audio/fr/numbers/32.ogg,fr-FR,trente-deux,nombre,
+audio/fr/numbers/33.ogg,fr-FR,trente-trois,nombre,
+audio/fr/numbers/34.ogg,fr-FR,trente-quatre,nombre,
+audio/fr/numbers/35.ogg,fr-FR,trente-cinq,nombre,
+audio/fr/numbers/36.ogg,fr-FR,trente-six,nombre,
+audio/fr/numbers/37.ogg,fr-FR,trente-sept,nombre,
+audio/fr/numbers/38.ogg,fr-FR,trente-huit,nombre,
+audio/fr/numbers/39.ogg,fr-FR,trente-neuf,nombre,
+audio/fr/numbers/4.ogg,fr-FR,quatre,nombre,
+audio/fr/numbers/40.ogg,fr-FR,quarante,nombre,
+audio/fr/numbers/41.ogg,fr-FR,quarante et un,nombre,
+audio/fr/numbers/42.ogg,fr-FR,quarante-deux,nombre,
+audio/fr/numbers/43.ogg,fr-FR,quarante-trois,nombre,
+audio/fr/numbers/44.ogg,fr-FR,quarante-quatre,nombre,
+audio/fr/numbers/45.ogg,fr-FR,quarante-cinq,nombre,
+audio/fr/numbers/46.ogg,fr-FR,quarante-six,nombre,
+audio/fr/numbers/47.ogg,fr-FR,quarante-sept,nombre,
+audio/fr/numbers/48.ogg,fr-FR,quarante-huit,nombre,
+audio/fr/numbers/49.ogg,fr-FR,quarante-neuf,nombre,
+audio/fr/numbers/5.ogg,fr-FR,cinq,nombre,
+audio/fr/numbers/50.ogg,fr-FR,cinquante,nombre,
+audio/fr/numbers/51.ogg,fr-FR,cinquante et un,nombre,
+audio/fr/numbers/52.ogg,fr-FR,cinquante-deux,nombre,
+audio/fr/numbers/53.ogg,fr-FR,cinquante-trois,nombre,
+audio/fr/numbers/54.ogg,fr-FR,cinquante-quatre,nombre,
+audio/fr/numbers/55.ogg,fr-FR,cinquante-cinq,nombre,
+audio/fr/numbers/56.ogg,fr-FR,cinquante-six,nombre,
+audio/fr/numbers/57.ogg,fr-FR,cinquante-sept,nombre,
+audio/fr/numbers/58.ogg,fr-FR,cinquante-huit,nombre,
+audio/fr/numbers/59.ogg,fr-FR,cinquante-neuf,nombre,
+audio/fr/numbers/6.ogg,fr-FR,six,nombre,
+audio/fr/numbers/60.ogg,fr-FR,soixante,nombre,
+audio/fr/numbers/61.ogg,fr-FR,soixante et un,nombre,
+audio/fr/numbers/62.ogg,fr-FR,soixante-deux,nombre,
+audio/fr/numbers/63.ogg,fr-FR,soixante-trois,nombre,
+audio/fr/numbers/64.ogg,fr-FR,soixante-quatre,nombre,
+audio/fr/numbers/65.ogg,fr-FR,soixante-cinq,nombre,
+audio/fr/numbers/66.ogg,fr-FR,soixante-six,nombre,
+audio/fr/numbers/67.ogg,fr-FR,soixante-sept,nombre,
+audio/fr/numbers/68.ogg,fr-FR,soixante-huit,nombre,
+audio/fr/numbers/69.ogg,fr-FR,soixante-neuf,nombre,
+audio/fr/numbers/7.ogg,fr-FR,sept,nombre,
+audio/fr/numbers/70.ogg,fr-FR,soixante-dix,nombre,
+audio/fr/numbers/71.ogg,fr-FR,soixante et onze,nombre,
+audio/fr/numbers/72.ogg,fr-FR,soixante-douze,nombre,
+audio/fr/numbers/73.ogg,fr-FR,soixante-treize,nombre,
+audio/fr/numbers/74.ogg,fr-FR,soixante-quatorze,nombre,
+audio/fr/numbers/75.ogg,fr-FR,soixante-quinze,nombre,
+audio/fr/numbers/76.ogg,fr-FR,soixante-seize,nombre,
+audio/fr/numbers/77.ogg,fr-FR,soixante-dix-sept,nombre,
+audio/fr/numbers/78.ogg,fr-FR,soixante-dix-huit,nombre,
+audio/fr/numbers/79.ogg,fr-FR,soixante-dix-neuf,nombre,
+audio/fr/numbers/8.ogg,fr-FR,huit,nombre,
+audio/fr/numbers/80.ogg,fr-FR,quatre-vingts,nombre,
+audio/fr/numbers/81.ogg,fr-FR,quatre-vingt-un,nombre,
+audio/fr/numbers/82.ogg,fr-FR,quatre-vingt-deux,nombre,
+audio/fr/numbers/83.ogg,fr-FR,quatre-vingt-trois,nombre,
+audio/fr/numbers/84.ogg,fr-FR,quatre-vingt-quatre,nombre,
+audio/fr/numbers/85.ogg,fr-FR,quatre-vingt-cinq,nombre,
+audio/fr/numbers/86.ogg,fr-FR,quatre-vingt-six,nombre,
+audio/fr/numbers/87.ogg,fr-FR,quatre-vingt-sept,nombre,
+audio/fr/numbers/88.ogg,fr-FR,quatre-vingt-huit,nombre,
+audio/fr/numbers/89.ogg,fr-FR,quatre-vingt-neuf,nombre,
+audio/fr/numbers/9.ogg,fr-FR,neuf,nombre,
+audio/fr/numbers/90.ogg,fr-FR,quatre-vingt-dix,nombre,
+audio/fr/numbers/91.ogg,fr-FR,quatre-vingt-onze,nombre,
+audio/fr/numbers/92.ogg,fr-FR,quatre-vingt-douze,nombre,
+audio/fr/numbers/93.ogg,fr-FR,quatre-vingt-treize,nombre,
+audio/fr/numbers/94.ogg,fr-FR,quatre-vingt-quatorze,nombre,
+audio/fr/numbers/95.ogg,fr-FR,quatre-vingt-quinze,nombre,
+audio/fr/numbers/96.ogg,fr-FR,quatre-vingt-seize,nombre,
+audio/fr/numbers/97.ogg,fr-FR,quatre-vingt-dix-sept,nombre,
+audio/fr/numbers/98.ogg,fr-FR,quatre-vingt-dix-huit,nombre,
+audio/fr/numbers/99.ogg,fr-FR,quatre-vingt-dix-neuf,nombre,

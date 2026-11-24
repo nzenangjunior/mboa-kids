@@ -14,6 +14,7 @@ import 'clip_player.dart';
 class ClipAudioService implements AudioService {
   ClipAudioService({
     required ClipPlayer player,
+    required ClipPlayer sfxPlayer,
     required AudioService fallback,
     required Map<String, String> itemAudioPaths,
     required Map<String, String> promptAudioPaths,
@@ -22,6 +23,7 @@ class ClipAudioService implements AudioService {
     Random? random,
     void Function(String missingId)? onMissingClip,
   }) : _player = player,
+       _sfxPlayer = sfxPlayer,
        _fallback = fallback,
        _itemAudioPaths = itemAudioPaths,
        _promptAudioPaths = promptAudioPaths,
@@ -31,6 +33,15 @@ class ClipAudioService implements AudioService {
        _onMissingClip = onMissingClip ?? _logMissingClip;
 
   final ClipPlayer _player;
+
+  /// A player of its own, never shared with spoken instructions
+  /// (CLAUDE.md section 10): a sound effect must never wait behind a
+  /// slow or missing voice clip still loading on [_player] — reproduced
+  /// live, where a single shared player made the wrong-answer sound
+  /// arrive several seconds late, queued behind the retry instruction's
+  /// own failing clip loads.
+  final ClipPlayer _sfxPlayer;
+
   final AudioService _fallback;
   final Map<String, String> _itemAudioPaths;
   final Map<String, String> _promptAudioPaths;
@@ -41,15 +52,35 @@ class ClipAudioService implements AudioService {
 
   @override
   Future<void> playItem(String itemId) =>
-      _playOrFallback(_itemAudioPaths[itemId], itemId, () => _fallback.playItem(itemId));
+      _playOrFallback(_itemAudioPaths[itemId], itemId, () => _fallback.playItem(itemId), _player);
 
   @override
   Future<void> playPrompt(String key) =>
-      _playOrFallback(_promptAudioPaths[key], key, () => _fallback.playPrompt(key));
+      _playOrFallback(_promptAudioPaths[key], key, () => _fallback.playPrompt(key), _player);
+
+  @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {
+    final promptPath = _promptAudioPaths[promptKey];
+    final itemPath = _itemAudioPaths[itemId];
+    final id = 'instruction:$promptKey+$itemId';
+    // Both clips must exist and actually play — a half-clip-half-TTS
+    // instruction would be its own kind of "two separate phrases", so
+    // any failure falls back to the single combined TTS utterance
+    // instead, rather than mixing a successful clip with a fallback for
+    // just the other half.
+    if (promptPath != null &&
+        itemPath != null &&
+        await _tryPlay(promptPath, _player) &&
+        await _tryPlay(itemPath, _player)) {
+      return;
+    }
+    _onMissingClip(id);
+    await _fallback.playInstruction(promptKey: promptKey, itemId: itemId);
+  }
 
   @override
   Future<void> playSfx(String name) =>
-      _playOrFallback(_sfxAudioPaths[name], name, () => _fallback.playSfx(name));
+      _playOrFallback(_sfxAudioPaths[name], name, () => _fallback.playSfx(name), _sfxPlayer);
 
   @override
   Future<void> playPraise() async {
@@ -58,7 +89,7 @@ class ClipAudioService implements AudioService {
       return _fallback.playPraise();
     }
     final path = _praiseAudioPaths[_random.nextInt(_praiseAudioPaths.length)];
-    if (!await _tryPlay(path)) {
+    if (!await _tryPlay(path, _player)) {
       _onMissingClip('praise:$path');
       await _fallback.playPraise();
     }
@@ -68,16 +99,17 @@ class ClipAudioService implements AudioService {
     String? assetPath,
     String id,
     Future<void> Function() runFallback,
+    ClipPlayer player,
   ) async {
-    if (assetPath == null || !await _tryPlay(assetPath)) {
+    if (assetPath == null || !await _tryPlay(assetPath, player)) {
       _onMissingClip(id);
       await runFallback();
     }
   }
 
-  Future<bool> _tryPlay(String assetPath) async {
+  Future<bool> _tryPlay(String assetPath, ClipPlayer player) async {
     try {
-      await _player.playAsset(assetPath);
+      await player.playAsset(assetPath);
       return true;
     } catch (_) {
       return false;
@@ -87,6 +119,7 @@ class ClipAudioService implements AudioService {
   @override
   Future<void> stop() async {
     await _player.stop();
+    await _sfxPlayer.stop();
     await _fallback.stop();
   }
 

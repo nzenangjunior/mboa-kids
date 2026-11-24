@@ -12,7 +12,19 @@ abstract class AudioService {
   /// Plays the clip naming a content item (a letter, a number, a word).
   Future<void> playItem(String itemId);
 
+  /// Plays [promptKey] and [itemId] together as a single instruction —
+  /// e.g. "touche la lettre A" — never as two separate utterances with a
+  /// gap between them (CLAUDE.md section 10: "une consigne = une seule
+  /// phrase"). Screens that announce "prompt, then which item" (the
+  /// alphabet game, tracing) call this instead of [playPrompt] followed
+  /// by [playItem].
+  Future<void> playInstruction({required String promptKey, required String itemId});
+
   /// Plays a non-speech sound effect (success chime, soft error sound...).
+  /// Never waits behind a spoken instruction still loading or failing to
+  /// load — implementations must play it on its own channel/player, so a
+  /// slow or missing voice clip can never delay the sound of an answer
+  /// being right or wrong.
   Future<void> playSfx(String name);
 
   /// Plays a praise phrase, e.g. at the end of a game.

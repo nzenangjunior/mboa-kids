@@ -363,6 +363,7 @@ final audioServiceProvider = FutureProvider.family<AudioService, String>((
 
   return ClipAudioService(
     player: JustAudioClipPlayer(),
+    sfxPlayer: JustAudioClipPlayer(),
     fallback: fallback,
     itemAudioPaths: itemAudioPaths,
     promptAudioPaths: promptAudioPaths,

@@ -34,6 +34,8 @@ class _FakeAudioService implements AudioService {
   @override
   Future<void> playPrompt(String key) async {}
   @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {}
+  @override
   Future<void> playSfx(String name) async {}
   @override
   Future<void> playPraise() async {}
@@ -222,5 +224,71 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(find.text('DEBUG_MARKER'), findsNothing);
     });
+  });
+
+  group('scene fills the screen at every window size (CLAUDE.md section 10, '
+      'Refonte visuelle)', () {
+    // The three sizes Louis actually tested with: a laptop window, a
+    // smaller laptop window, and a phone held sideways — the narrowest and
+    // (crucially) SHORTEST of the three, where a fixed-height baobab and a
+    // big ▶ button have the least room to fit without overflowing.
+    for (final size in [const Size(1411, 840), const Size(1280, 720), const Size(800, 360)]) {
+      testWidgets('at ${size.width.toInt()}x${size.height.toInt()}', (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(size);
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(_buildTestApp());
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // No RenderFlex overflow or any other layout exception — this is
+        // the one window size regressions actually show up at: the
+        // baobab's fixed 180px height plus the header row and the lock
+        // row leave the least slack in a short window.
+        expect(tester.takeException(), isNull);
+
+        // Regression check for the exact bug reproduced live: the sky/
+        // ground gradients collapsing to zero width and only the
+        // Scaffold's own flat background showing through.
+        final skyAndGroundBoxes = tester
+            .widgetList<DecoratedBox>(
+              find.descendant(of: find.byType(HomeScreen), matching: find.byType(DecoratedBox)),
+            )
+            .toList();
+        expect(skyAndGroundBoxes, isNotEmpty);
+        for (final box in skyAndGroundBoxes) {
+          final renderBox = tester
+              .allElements
+              .firstWhere((e) => e.widget == box)
+              .renderObject! as RenderBox;
+          expect(
+            renderBox.size.width,
+            size.width,
+            reason: 'the sky/ground gradient must span the full width, not collapse to 0',
+          );
+        }
+
+        // CLAUDE.md section 2.4: every tap target is at least 64dp, at
+        // every window size — not just the ones Louis's own screen
+        // happened to show full-size.
+        for (final icon in [Icons.map, Icons.auto_stories]) {
+          final buttonSize = tester.getSize(
+            find.ancestor(of: find.byIcon(icon), matching: find.byType(IconButton)),
+          );
+          expect(buttonSize.width, greaterThanOrEqualTo(64));
+          expect(buttonSize.height, greaterThanOrEqualTo(64));
+        }
+        for (final flag in ['🇫🇷', '🇬🇧']) {
+          final flagTarget = tester.getSize(
+            find.ancestor(of: find.text(flag), matching: find.byType(GestureDetector)),
+          );
+          expect(flagTarget.width, greaterThanOrEqualTo(64));
+          expect(flagTarget.height, greaterThanOrEqualTo(64));
+        }
+      });
+    }
   });
 }

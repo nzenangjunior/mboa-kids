@@ -145,7 +145,7 @@ class ProgressDatabase extends _$ProgressDatabase {
   ProgressDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -163,7 +163,15 @@ class ProgressDatabase extends _$ProgressDatabase {
         await m.addColumn(settingsRows, settingsRows.albumLastSeenCount);
         await m.createTable(stickerPositionRows);
       }
-      if (from < 5) {
+      // `schemaVersion` must go up every time a new migration step is
+      // added here, even one that only reaches `hasShownPlayHint` — a
+      // database already sitting at the version this step first shipped
+      // under would otherwise never see `from < that version` become
+      // true again, so `addColumn` would never run for it (reproduced
+      // live: a browser profile stuck at schemaVersion 5 without the
+      // physical `has_shown_play_hint` column, because that version
+      // number was reused instead of bumped when this step was added).
+      if (from < 6) {
         await m.addColumn(settingsRows, settingsRows.hasShownPlayHint);
       }
     },

@@ -33,6 +33,8 @@ class _FakeAudioService implements AudioService {
   @override
   Future<void> playPrompt(String key) async {}
   @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {}
+  @override
   Future<void> playSfx(String name) async {}
   @override
   Future<void> playPraise() async {}

@@ -25,6 +25,7 @@ class _FakeClipPlayer implements ClipPlayer {
 class _FakeAudioService implements AudioService {
   final List<String> itemCalls = [];
   final List<String> promptCalls = [];
+  final List<String> instructionCalls = [];
   final List<String> sfxCalls = [];
   int praiseCalls = 0;
   int stopCalls = 0;
@@ -34,6 +35,10 @@ class _FakeAudioService implements AudioService {
 
   @override
   Future<void> playPrompt(String key) async => promptCalls.add(key);
+
+  @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async =>
+      instructionCalls.add('$promptKey+$itemId');
 
   @override
   Future<void> playSfx(String name) async => sfxCalls.add(name);
@@ -56,6 +61,7 @@ void main() {
 
   ClipAudioService buildService({
     required _FakeClipPlayer player,
+    _FakeClipPlayer? sfxPlayer,
     Map<String, String> itemAudioPaths = const {},
     Map<String, String> promptAudioPaths = const {},
     Map<String, String> sfxAudioPaths = const {},
@@ -63,6 +69,7 @@ void main() {
   }) {
     return ClipAudioService(
       player: player,
+      sfxPlayer: sfxPlayer ?? _FakeClipPlayer(),
       fallback: fallback,
       itemAudioPaths: itemAudioPaths,
       promptAudioPaths: promptAudioPaths,
@@ -142,5 +149,86 @@ void main() {
 
     expect(player.played, ['audio/praise/bravo1.ogg']);
     expect(fallback.praiseCalls, 0);
+  });
+
+  group('playInstruction (CLAUDE.md section 10: "une consigne = une seule phrase")', () {
+    test('plays the prompt clip then the item clip, never falling back, when both succeed', () async {
+      final player = _FakeClipPlayer();
+      final service = buildService(
+        player: player,
+        promptAudioPaths: {'find_the_letter': 'audio/en/prompts/find_the_letter.ogg'},
+        itemAudioPaths: {'en.letter.B': 'audio/en/letters/b.ogg'},
+      );
+
+      await service.playInstruction(promptKey: 'find_the_letter', itemId: 'en.letter.B');
+
+      expect(player.played, [
+        'audio/en/prompts/find_the_letter.ogg',
+        'audio/en/letters/b.ogg',
+      ]);
+      expect(fallback.instructionCalls, isEmpty);
+      expect(
+        fallback.promptCalls,
+        isEmpty,
+        reason: 'never two separate fallback calls either, only the combined one if needed',
+      );
+      expect(fallback.itemCalls, isEmpty);
+    });
+
+    test(
+      'falls back to a single combined instruction (not a half-clip-half-TTS mix) '
+      'when the prompt clip is missing',
+      () async {
+        final player = _FakeClipPlayer();
+        final service = buildService(
+          player: player,
+          itemAudioPaths: {'en.letter.B': 'audio/en/letters/b.ogg'},
+        );
+
+        await service.playInstruction(promptKey: 'find_the_letter', itemId: 'en.letter.B');
+
+        expect(
+          player.played,
+          isEmpty,
+          reason: 'the item clip must not play alone once the prompt clip is known missing',
+        );
+        expect(fallback.instructionCalls, ['find_the_letter+en.letter.B']);
+        expect(missingIds, ['instruction:find_the_letter+en.letter.B']);
+      },
+    );
+
+    test('falls back to a single combined instruction when the item clip fails to play', () async {
+      final player = _FakeClipPlayer(failingPaths: {'audio/en/letters/b.ogg'});
+      final service = buildService(
+        player: player,
+        promptAudioPaths: {'find_the_letter': 'audio/en/prompts/find_the_letter.ogg'},
+        itemAudioPaths: {'en.letter.B': 'audio/en/letters/b.ogg'},
+      );
+
+      await service.playInstruction(promptKey: 'find_the_letter', itemId: 'en.letter.B');
+
+      expect(fallback.instructionCalls, ['find_the_letter+en.letter.B']);
+      expect(missingIds, ['instruction:find_the_letter+en.letter.B']);
+    });
+  });
+
+  test('a sound effect plays on its own player, never the one instructions use', () async {
+    final player = _FakeClipPlayer();
+    final sfxPlayer = _FakeClipPlayer();
+    final service = buildService(
+      player: player,
+      sfxPlayer: sfxPlayer,
+      sfxAudioPaths: {'soft_error': 'audio/sfx/soft_error.ogg'},
+    );
+
+    await service.playSfx('soft_error');
+
+    expect(sfxPlayer.played, ['audio/sfx/soft_error.ogg']);
+    expect(
+      player.played,
+      isEmpty,
+      reason: 'a sound effect must never go through the instruction player — CLAUDE.md '
+          'section 10: it must never wait behind a slow or missing voice clip',
+    );
   });
 }

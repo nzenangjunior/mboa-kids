@@ -299,10 +299,11 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
   }
 
   Future<void> _playPromptForRound(String world, AlphabetRound round) {
-    return _speakInstruction(world, (audio) async {
-      await audio.playPrompt('find_the_letter');
-      await audio.playItem(round.target.id);
-    });
+    return _speakInstruction(
+      world,
+      (audio) =>
+          audio.playInstruction(promptKey: 'find_the_letter', itemId: round.target.id),
+    );
   }
 
   /// Replays the full instruction (CLAUDE.md section 10: "une consigne =

@@ -41,6 +41,15 @@ class TtsFallbackAudioService implements AudioService {
       _speak(_promptSpokenText[key] ?? key);
 
   @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) {
+    final promptText = _promptSpokenText[promptKey] ?? promptKey;
+    final itemText = _itemSpokenText[itemId] ?? itemId;
+    // One speak() call, one utterance — never two separate calls with a
+    // gap between them (CLAUDE.md section 10).
+    return _speak('$promptText $itemText');
+  }
+
+  @override
   Future<void> playPraise() =>
       _speak(_praiseSpokenText[_random.nextInt(_praiseSpokenText.length)]);
 

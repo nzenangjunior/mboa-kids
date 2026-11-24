@@ -179,7 +179,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // relative to it.
                   child: SizedBox.expand(
                     child: Stack(
-                      alignment: Alignment.bottomCenter,
+                      // Only the baobab is pinned to the ground (its own
+                      // explicit Positioned, bottom: 0, below — unaffected
+                      // by this); the mascot/▶ row is the Stack's only
+                      // non-positioned child, so centering the Stack
+                      // centers that row vertically in the scene, instead
+                      // of anchoring it to the bottom edge with everything
+                      // above it left empty.
+                      alignment: Alignment.center,
                       children: [
                         Positioned(
                           left: 24,
@@ -254,7 +261,13 @@ class _SkyAndGround extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
+      // Without this, each DecoratedBox below (no child of its own, so no
+      // intrinsic width) gets the Column's default loose, centered cross
+      // -axis constraint and collapses to zero width — reproduced live,
+      // where the whole scene silently rendered as a blank 0×934 box and
+      // only the Scaffold's own flat background color showed through.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
           flex: 7,
@@ -346,7 +359,7 @@ class _WorldFlag extends StatelessWidget {
             child: AnimatedOpacity(
               opacity: selected ? 1 : 0.55,
               duration: const Duration(milliseconds: 150),
-              child: Text(emoji, style: const TextStyle(fontSize: 28)),
+              child: Text(emoji, style: const TextStyle(fontSize: 40)),
             ),
           ),
         ),
@@ -388,7 +401,12 @@ class _CornerIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      iconSize: 32,
+      // Large enough to actually read as a picture at a glance (CLAUDE.md
+      // section 2.3: no text for the child, everything goes through
+      // icons/voice/touch) — 32 looked like a speck inside its 64dp tap
+      // target when measured against a real window, not just a technically
+      // compliant hit box.
+      iconSize: 48,
       style: IconButton.styleFrom(
         minimumSize: const Size(MboaKidsTheme.minTapTarget, MboaKidsTheme.minTapTarget),
       ),

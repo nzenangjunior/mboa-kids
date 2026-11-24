@@ -44,6 +44,8 @@ class _FakeAudioService implements AudioService {
     promptCalls.add(key);
   }
   @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {}
+  @override
   Future<void> playSfx(String name) async {}
   @override
   Future<void> playPraise() async {}

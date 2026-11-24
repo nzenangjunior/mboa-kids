@@ -234,8 +234,10 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       final world = ref.read(worldProvider);
       final audio = await _audioFor(world);
       await audio.stop();
-      await audio.playPrompt('trace_the_letter');
-      await audio.playItem(_queue![_index].item.id);
+      await audio.playInstruction(
+        promptKey: 'trace_the_letter',
+        itemId: _queue![_index].item.id,
+      );
     } catch (_) {
       // A missing or slow clip must never block the activity: the child
       // can still see the guide and trace it without the spoken prompt.

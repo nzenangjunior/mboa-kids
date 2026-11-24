@@ -44,6 +44,9 @@ class _FakeAudioService implements AudioService {
   Future<void> playPrompt(String key) async {}
 
   @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {}
+
+  @override
   Future<void> playSfx(String name) async {}
 
   @override
@@ -55,7 +58,9 @@ class _FakeAudioService implements AudioService {
 
 /// Records every item id the screen asks to have spoken, in order — this
 /// is how the tests below check exactly which letters, and in what order
-/// (repeats included), the activity actually requested.
+/// (repeats included), the activity actually requested. The screen itself
+/// calls [playInstruction] (CLAUDE.md section 10: one combined phrase,
+/// never a separate playPrompt/playItem), so that's recorded here too.
 class _RecordingAudioService implements AudioService {
   final List<String> playedItemIds = [];
 
@@ -64,6 +69,10 @@ class _RecordingAudioService implements AudioService {
 
   @override
   Future<void> playPrompt(String key) async {}
+
+  @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async =>
+      playedItemIds.add(itemId);
 
   @override
   Future<void> playSfx(String name) async {}

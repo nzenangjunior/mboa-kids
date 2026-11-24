@@ -43,6 +43,9 @@ class _FakeAudioService implements AudioService {
   Future<void> playPrompt(String key) async {}
 
   @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {}
+
+  @override
   Future<void> playSfx(String name) async {}
 
   @override
@@ -53,7 +56,7 @@ class _FakeAudioService implements AudioService {
 }
 
 /// Records every call (in order) and takes a non-trivial, configurable
-/// time to "speak" a prompt or item — long enough that a test can tap
+/// time to "speak" an instruction — long enough that a test can tap
 /// mid-speech and observe whether that tap was ignored (CLAUDE.md section
 /// 10: "toucher le perroquet pendant qu'il parle : ignoré").
 class _RecordingAudioService implements AudioService {
@@ -71,6 +74,14 @@ class _RecordingAudioService implements AudioService {
   @override
   Future<void> playPrompt(String key) async {
     calls.add('prompt:$key');
+    await Future<void>.delayed(speakDelay);
+  }
+
+  @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) async {
+    // One call, one entry — CLAUDE.md section 10: "une consigne = une
+    // seule phrase", never two separate prompt/item calls.
+    calls.add('instruction:$promptKey+$itemId');
     await Future<void>.delayed(speakDelay);
   }
 
@@ -109,6 +120,9 @@ class _NeverCompletingAudioService implements AudioService {
 
   @override
   Future<void> playPrompt(String key) => _hang();
+
+  @override
+  Future<void> playInstruction({required String promptKey, required String itemId}) => _hang();
 
   @override
   Future<void> playSfx(String name) => _hang();
@@ -490,7 +504,7 @@ void main() {
         }
         expect(find.byType(ChoiceCard), findsWidgets);
         expect(
-          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
           1,
           reason: 'the question appearing speaks its instruction exactly once',
         );
@@ -502,18 +516,18 @@ void main() {
           await tester.pump(const Duration(milliseconds: 10));
         }
         expect(
-          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
           1,
           reason: 'every tap landed mid-speech and must have been ignored',
         );
 
-        // Let the instruction actually finish (playPrompt then playItem,
-        // 200ms each), then a real replay works.
-        await tester.pump(const Duration(milliseconds: 450));
+        // Let the instruction actually finish (one playInstruction call,
+        // 200ms), then a real replay works.
+        await tester.pump(const Duration(milliseconds: 250));
         await tester.tap(find.byType(Mascot));
         await tester.pump(const Duration(milliseconds: 10));
-        expect(audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length, 2);
-        await tester.pump(const Duration(milliseconds: 450));
+        expect(audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length, 2);
+        await tester.pump(const Duration(milliseconds: 250));
 
         // Answer whichever choice comes first — correct or wrong, the
         // same invariant applies either way (retry on wrong, or the next
@@ -524,8 +538,8 @@ void main() {
 
         final afterAnswerTap = audio.calls.length;
         // Covers the longer of the two delays (1.5s on correct, 1s on
-        // wrong) plus the next instruction's own playPrompt+playItem
-        // (200ms each) — pumped in small steps (not one big jump) so any
+        // wrong) plus the next instruction's own playInstruction call
+        // (200ms) — pumped in small steps (not one big jump) so any
         // async work in between (e.g. _prepareRound's own DB read) gets
         // a chance to resolve, same as elsewhere in this file.
         for (var i = 0; i < 40; i++) {
@@ -534,7 +548,7 @@ void main() {
 
         final spokenAfterAnswering = audio.calls
             .sublist(afterAnswerTap)
-            .where((c) => c.startsWith('prompt:find_the_letter'))
+            .where((c) => c.startsWith('instruction:find_the_letter'))
             .length;
         expect(
           spokenAfterAnswering,
@@ -557,13 +571,13 @@ void main() {
           await tester.pump(const Duration(milliseconds: 10));
         }
         expect(
-          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
           1,
         );
 
         await tester.pump(const Duration(seconds: 6));
         expect(
-          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
           2,
           reason: '6 unanswered seconds repeats the instruction exactly once',
         );
@@ -575,7 +589,7 @@ void main() {
 
         await tester.pump(const Duration(seconds: 6));
         expect(
-          audio.calls.where((c) => c.startsWith('prompt:find_the_letter')).length,
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
           2,
           reason: 'the second timeout reveals the answer silently, it must not speak again',
         );
@@ -583,6 +597,66 @@ void main() {
           tester.widgetList<ChoiceCard>(find.byType(ChoiceCard)).where((c) => c.isHinted).length,
           1,
           reason: 'exactly the correct choice is now shown via a hint',
+        );
+      },
+    );
+
+    testWidgets(
+      'exact scenario: 1 instruction, 1 immediate error sound, 1 instruction on retry, '
+      'at most 1 repeat if left unanswered',
+      (WidgetTester tester) async {
+        final audio = _RecordingAudioService(speakDelay: const Duration(milliseconds: 100));
+        await tester.pumpWidget(_buildTestApp(audioService: audio));
+
+        for (var i = 0; i < 30 && find.byType(ChoiceCard).evaluate().isEmpty; i++) {
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        expect(
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
+          1,
+          reason: '1 consigne au départ',
+        );
+
+        // Answer wrong on purpose: the just-spoken instruction names the
+        // target id (e.g. "instruction:find_the_letter+fr.letter.B") —
+        // tap any other visible choice.
+        final targetId = audio.calls
+            .lastWhere((c) => c.startsWith('instruction:find_the_letter'))
+            .split('+')
+            .last;
+        final wrongCard = tester
+            .widgetList<ChoiceCard>(find.byType(ChoiceCard))
+            .firstWhere((c) => !targetId.endsWith('.${c.label}'));
+        await tester.tap(find.byWidget(wrongCard));
+        // A single short pump — far less than the fake's own 100ms speak
+        // delay — so this only passes if the error sound truly never
+        // waited behind a voice call.
+        await tester.pump(const Duration(milliseconds: 5));
+        expect(
+          audio.calls.last,
+          'sfx:soft_error',
+          reason: '1 son d\'erreur immédiat, jamais derrière la voix',
+        );
+
+        // The 1s wrong-answer highlight, then the retry's own instruction.
+        for (var i = 0; i < 25; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+        final afterWrongTap = audio.calls
+            .where((c) => c.startsWith('instruction:find_the_letter'))
+            .length;
+        expect(afterWrongTap, 2, reason: '1 consigne à la reprise (2 au total)');
+
+        // Left unanswered from here: at most one repeat, ever.
+        for (var i = 0; i < 2; i++) {
+          for (var j = 0; j < 140; j++) {
+            await tester.pump(const Duration(milliseconds: 50));
+          }
+        }
+        expect(
+          audio.calls.where((c) => c.startsWith('instruction:find_the_letter')).length,
+          3,
+          reason: 'au plus 1 relance (3 au total : départ, reprise, une seule relance)',
         );
       },
     );
