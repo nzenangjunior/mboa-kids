@@ -75,5 +75,21 @@ abstract class ProgressRepository {
   /// (CLAUDE.md section 10: a level keeps its best stars, never loses them).
   Future<void> recordLevelStars(String levelId, int stars);
 
+  /// How many stickers + golden letters were earned the last time the
+  /// album was opened (CLAUDE.md section 10, Refonte visuelle: drives the
+  /// home screen's "new sticker" badge).
+  Future<int> albumLastSeenCount();
+
+  Future<void> setAlbumLastSeenCount(int count);
+
+  /// Where each sticker/golden letter was placed in the album's scene, by
+  /// its id, as normalized (dx, dy) coordinates in 0..1. Empty for any id
+  /// never explicitly placed — the album then falls back to its own
+  /// computed layout. Nothing writes here yet (no drag-and-drop built),
+  /// but the read/write pair already exists for when it is.
+  Future<Map<String, (double, double)>> stickerPositions();
+
+  Future<void> setStickerPosition(String stickerId, double dx, double dy);
+
   Future<void> dispose();
 }

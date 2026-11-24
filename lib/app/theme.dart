@@ -10,6 +10,14 @@ class MboaKidsTheme {
   static const Color lightPink = Color(0xFFFFD6E8);
   static const Color lightPurple = Color(0xFFE4D4F4);
 
+  /// Warm accents added for the Refonte visuelle (CLAUDE.md section 10):
+  /// used in the new scenes (ciel/sol, baobab) alongside the rose/violet
+  /// above, never replacing it in buttons or the app bar.
+  static const Color terracotta = Color(0xFFE2793D);
+  static const Color gold = Color(0xFFF2B33D);
+  static const Color skyWarm = Color(0xFFFFE8C7);
+  static const Color groundWarm = Color(0xFFC98A52);
+
   /// Minimum touch target size required by CLAUDE.md (>= 64 dp).
   static const double minTapTarget = 64;
 

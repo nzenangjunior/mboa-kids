@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,15 +11,18 @@ import '../../app/theme.dart';
 import '../../core/audio/audio_service.dart';
 import '../../core/progress/level_path.dart';
 import '../../core/tracing/tracing_queue.dart';
-import '../../shared/widgets/mascot_tap_target.dart';
+import '../../shared/widgets/home_button.dart';
+import '../../shared/widgets/mascot.dart';
+import '../../shared/widgets/pagne_pattern.dart';
 
 enum IslandType { alphabet, tracing }
 
 /// One island's path of levels (CLAUDE.md section 10): 1 level = 1 pack,
-/// shown as a circle — locked, open (pulsing) or done (with its best
-/// stars) — along a simple winding path. No text for the child: the
-/// glyphs shown inside a level ARE the content being taught (same as the
-/// alphabet game's own choice cards), not an instruction to read.
+/// shown as a circle — locked, open (pulsing, the mascot perched on it)
+/// or done (with its best stars) — along a winding, dotted path. No text
+/// for the child: the glyphs shown inside a level ARE the content being
+/// taught (same as the alphabet game's own choice cards), not an
+/// instruction to read.
 class LevelPathScreen extends ConsumerStatefulWidget {
   const LevelPathScreen({super.key, required this.islandType});
 
@@ -100,20 +104,29 @@ class _LevelPathScreenState extends ConsumerState<LevelPathScreen> {
   @override
   Widget build(BuildContext context) {
     final world = ref.watch(worldProvider);
+    final accent = widget.islandType == IslandType.alphabet
+        ? MboaKidsTheme.pink
+        : MboaKidsTheme.purple;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            MascotTapTarget(onTap: _playPrompt),
-            Expanded(
-              child: widget.islandType == IslandType.alphabet
-                  ? _buildAlphabetPath(world)
-                  : _buildTracingPath(world),
+      body: Stack(
+        children: [
+          Positioned.fill(child: PagnePattern(color: accent)),
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Mascot(onTap: _playPrompt),
+                Expanded(
+                  child: widget.islandType == IslandType.alphabet
+                      ? _buildAlphabetPath(world)
+                      : _buildTracingPath(world),
+                ),
+                const Align(alignment: Alignment.bottomLeft, child: HomeButton()),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -165,33 +178,95 @@ class _LevelPathScreenState extends ConsumerState<LevelPathScreen> {
   }
 }
 
+const _circleSize = 96.0;
+const _itemWidth = 150.0;
+const _altOffset = 36.0;
+const _topPadding = 56.0;
+const _sidePadding = 32.0;
+
+/// A horizontally-scrolling, winding dotted path (CLAUDE.md section 10,
+/// Refonte visuelle: "un vrai chemin sinueux en pointillés") connecting
+/// each level in order, alternating a little up and down.
 class _PathList extends StatelessWidget {
   const _PathList({required this.itemCount, required this.itemBuilder});
 
   final int itemCount;
   final Widget Function(int index) itemBuilder;
 
+  Offset _circleCenter(int index) {
+    final x = _sidePadding + index * _itemWidth + _circleSize / 2;
+    final y = _topPadding + (index.isEven ? 0.0 : _altOffset) + _circleSize / 2;
+    return Offset(x, y);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (itemCount == 0) {
       return const Center(child: Icon(Icons.hourglass_empty, size: 48));
     }
-    return ListView.builder(
+
+    final centers = [for (var i = 0; i < itemCount; i++) _circleCenter(i)];
+    final width = _sidePadding * 2 + itemCount * _itemWidth;
+    const height = _topPadding + _altOffset + _circleSize + 56;
+
+    return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        final offset = index.isEven ? 0.0 : 36.0;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Transform.translate(
-            offset: Offset(0, offset),
-            child: itemBuilder(index),
-          ),
-        );
-      },
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(painter: _DottedPathPainter(points: centers)),
+            ),
+            for (var i = 0; i < itemCount; i++)
+              Positioned(
+                left: centers[i].dx - _circleSize / 2,
+                top: centers[i].dy - _circleSize / 2,
+                width: _circleSize,
+                child: itemBuilder(i),
+              ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _DottedPathPainter extends CustomPainter {
+  _DottedPathPainter({required this.points});
+
+  final List<Offset> points;
+
+  static const _dashLength = 10.0;
+  static const _gapLength = 8.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = MboaKidsTheme.purple.withValues(alpha: 0.45)
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    for (var i = 0; i < points.length - 1; i++) {
+      final a = points[i];
+      final b = points[i + 1];
+      final total = (b - a).distance;
+      if (total == 0) continue;
+      final direction = (b - a) / total;
+      var covered = 0.0;
+      while (covered < total) {
+        final segmentEnd = math.min(covered + _dashLength, total);
+        canvas.drawLine(a + direction * covered, a + direction * segmentEnd, paint);
+        covered += _dashLength + _gapLength;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedPathPainter oldDelegate) =>
+      oldDelegate.points != points;
 }
 
 class _LevelCircle extends StatefulWidget {
@@ -254,41 +329,59 @@ class _LevelCircleState extends State<_LevelCircle> with SingleTickerProviderSta
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AnimatedBuilder(
-          animation: _pulseController,
-          builder: (context, child) {
-            final scale = widget.state == LevelState.open
-                ? 1 + _pulseController.value * 0.08
-                : 1.0;
-            return Transform.scale(scale: scale, child: child);
-          },
-          child: Material(
-            color: color,
-            shape: const CircleBorder(),
-            elevation: 4,
-            child: InkWell(
-              onTap: widget.onTap,
-              customBorder: const CircleBorder(),
-              child: SizedBox(
-                width: 96,
-                height: 96,
-                child: Center(
-                  child: locked
-                      ? const Icon(Icons.lock, size: 36, color: Colors.white)
-                      : widget.icon != null
-                      ? Icon(widget.icon, size: 40, color: Colors.white)
-                      : Text(
-                          widget.glyphs.join(' '),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+        SizedBox(
+          width: _circleSize,
+          height: _circleSize + 40,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              if (widget.state == LevelState.open)
+                const Positioned(
+                  top: 0,
+                  child: Mascot(mood: MascotMood.idle, size: 48),
+                ),
+              Positioned(
+                bottom: 0,
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    final scale = widget.state == LevelState.open
+                        ? 1 + _pulseController.value * 0.08
+                        : 1.0;
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: Material(
+                    color: color,
+                    shape: const CircleBorder(),
+                    elevation: 4,
+                    child: InkWell(
+                      onTap: widget.onTap,
+                      customBorder: const CircleBorder(),
+                      child: SizedBox(
+                        width: _circleSize,
+                        height: _circleSize,
+                        child: Center(
+                          child: locked
+                              ? const Icon(Icons.lock, size: 36, color: Colors.white)
+                              : widget.icon != null
+                              ? Icon(widget.icon, size: 40, color: Colors.white)
+                              : Text(
+                                  widget.glyphs.join(' '),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
         const SizedBox(height: 6),

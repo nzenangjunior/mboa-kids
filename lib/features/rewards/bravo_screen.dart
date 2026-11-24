@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../core/rewards/intensity_level.dart';
+import '../../shared/widgets/mascot.dart';
 import 'bravo_result.dart';
 
 /// End-of-game celebration (CLAUDE.md section 8): stars from how many
@@ -28,11 +29,19 @@ class BravoScreen extends ConsumerStatefulWidget {
 class _BravoScreenState extends ConsumerState<BravoScreen> {
   late final ConfettiController _confetti;
   bool _started = false;
+  late final bool _sleepsAfter;
 
   @override
   void initState() {
     super.initState();
     _confetti = ConfettiController(duration: const Duration(seconds: 2));
+    _sleepsAfter = ref.read(dailyPathSleepsAfterProvider);
+    // Riverpod forbids writing a provider mid-build (initState counts);
+    // the reset only needs to happen before this screen could possibly be
+    // reached a second time, so after the first frame is just as good.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(dailyPathSleepsAfterProvider.notifier).state = false;
+    });
   }
 
   @override
@@ -70,6 +79,8 @@ class _BravoScreenState extends ConsumerState<BravoScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Mascot(mood: MascotMood.happy, size: 110),
+                const SizedBox(height: 16),
                 if (result != null) _StarRow(stars: result.stars),
                 const SizedBox(height: 24),
                 if (result != null)
@@ -84,7 +95,8 @@ class _BravoScreenState extends ConsumerState<BravoScreen> {
                   ),
                 const SizedBox(height: 40),
                 ElevatedButton(
-                  onPressed: () => context.go('/'),
+                  onPressed: () =>
+                      context.go(_sleepsAfter ? '/mascot-sleeping' : '/'),
                   child: const Text('Accueil', style: TextStyle(fontSize: 20)),
                 ),
               ],

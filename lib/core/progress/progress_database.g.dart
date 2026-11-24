@@ -1006,12 +1006,24 @@ class $SettingsRowsTable extends SettingsRows
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _albumLastSeenCountMeta =
+      const VerificationMeta('albumLastSeenCount');
+  @override
+  late final GeneratedColumn<int> albumLastSeenCount = GeneratedColumn<int>(
+    'album_last_seen_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     intensity,
     tracingQueueCursor,
     world,
+    albumLastSeenCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1049,6 +1061,15 @@ class $SettingsRowsTable extends SettingsRows
         world.isAcceptableOrUnknown(data['world']!, _worldMeta),
       );
     }
+    if (data.containsKey('album_last_seen_count')) {
+      context.handle(
+        _albumLastSeenCountMeta,
+        albumLastSeenCount.isAcceptableOrUnknown(
+          data['album_last_seen_count']!,
+          _albumLastSeenCountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1074,6 +1095,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}world'],
       ),
+      albumLastSeenCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}album_last_seen_count'],
+      )!,
     );
   }
 
@@ -1099,11 +1124,18 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   /// (CLAUDE.md section 10: "le monde choisi est mémorisé"). Null means
   /// never chosen yet — the app falls back to its own default then.
   final String? world;
+
+  /// How many stickers + golden letters were earned the last time the
+  /// album was opened (CLAUDE.md section 10, Refonte visuelle: the home
+  /// screen's album icon shows a badge when this is lower than the
+  /// current total).
+  final int albumLastSeenCount;
   const SettingsRow({
     required this.id,
     required this.intensity,
     this.tracingQueueCursor,
     this.world,
+    required this.albumLastSeenCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1116,6 +1148,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     if (!nullToAbsent || world != null) {
       map['world'] = Variable<String>(world);
     }
+    map['album_last_seen_count'] = Variable<int>(albumLastSeenCount);
     return map;
   }
 
@@ -1129,6 +1162,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       world: world == null && nullToAbsent
           ? const Value.absent()
           : Value(world),
+      albumLastSeenCount: Value(albumLastSeenCount),
     );
   }
 
@@ -1144,6 +1178,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         json['tracingQueueCursor'],
       ),
       world: serializer.fromJson<String?>(json['world']),
+      albumLastSeenCount: serializer.fromJson<int>(json['albumLastSeenCount']),
     );
   }
   @override
@@ -1154,6 +1189,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'intensity': serializer.toJson<String>(intensity),
       'tracingQueueCursor': serializer.toJson<String?>(tracingQueueCursor),
       'world': serializer.toJson<String?>(world),
+      'albumLastSeenCount': serializer.toJson<int>(albumLastSeenCount),
     };
   }
 
@@ -1162,6 +1198,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     String? intensity,
     Value<String?> tracingQueueCursor = const Value.absent(),
     Value<String?> world = const Value.absent(),
+    int? albumLastSeenCount,
   }) => SettingsRow(
     id: id ?? this.id,
     intensity: intensity ?? this.intensity,
@@ -1169,6 +1206,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         ? tracingQueueCursor.value
         : this.tracingQueueCursor,
     world: world.present ? world.value : this.world,
+    albumLastSeenCount: albumLastSeenCount ?? this.albumLastSeenCount,
   );
   SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
     return SettingsRow(
@@ -1178,6 +1216,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ? data.tracingQueueCursor.value
           : this.tracingQueueCursor,
       world: data.world.present ? data.world.value : this.world,
+      albumLastSeenCount: data.albumLastSeenCount.present
+          ? data.albumLastSeenCount.value
+          : this.albumLastSeenCount,
     );
   }
 
@@ -1187,13 +1228,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('id: $id, ')
           ..write('intensity: $intensity, ')
           ..write('tracingQueueCursor: $tracingQueueCursor, ')
-          ..write('world: $world')
+          ..write('world: $world, ')
+          ..write('albumLastSeenCount: $albumLastSeenCount')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, intensity, tracingQueueCursor, world);
+  int get hashCode =>
+      Object.hash(id, intensity, tracingQueueCursor, world, albumLastSeenCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1201,7 +1244,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.id == this.id &&
           other.intensity == this.intensity &&
           other.tracingQueueCursor == this.tracingQueueCursor &&
-          other.world == this.world);
+          other.world == this.world &&
+          other.albumLastSeenCount == this.albumLastSeenCount);
 }
 
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
@@ -1209,23 +1253,27 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String> intensity;
   final Value<String?> tracingQueueCursor;
   final Value<String?> world;
+  final Value<int> albumLastSeenCount;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
     this.tracingQueueCursor = const Value.absent(),
     this.world = const Value.absent(),
+    this.albumLastSeenCount = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
     this.intensity = const Value.absent(),
     this.tracingQueueCursor = const Value.absent(),
     this.world = const Value.absent(),
+    this.albumLastSeenCount = const Value.absent(),
   });
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
     Expression<String>? intensity,
     Expression<String>? tracingQueueCursor,
     Expression<String>? world,
+    Expression<int>? albumLastSeenCount,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1233,6 +1281,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       if (tracingQueueCursor != null)
         'tracing_queue_cursor': tracingQueueCursor,
       if (world != null) 'world': world,
+      if (albumLastSeenCount != null)
+        'album_last_seen_count': albumLastSeenCount,
     });
   }
 
@@ -1241,12 +1291,14 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String>? intensity,
     Value<String?>? tracingQueueCursor,
     Value<String?>? world,
+    Value<int>? albumLastSeenCount,
   }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
       intensity: intensity ?? this.intensity,
       tracingQueueCursor: tracingQueueCursor ?? this.tracingQueueCursor,
       world: world ?? this.world,
+      albumLastSeenCount: albumLastSeenCount ?? this.albumLastSeenCount,
     );
   }
 
@@ -1265,6 +1317,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     if (world.present) {
       map['world'] = Variable<String>(world.value);
     }
+    if (albumLastSeenCount.present) {
+      map['album_last_seen_count'] = Variable<int>(albumLastSeenCount.value);
+    }
     return map;
   }
 
@@ -1274,7 +1329,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('id: $id, ')
           ..write('intensity: $intensity, ')
           ..write('tracingQueueCursor: $tracingQueueCursor, ')
-          ..write('world: $world')
+          ..write('world: $world, ')
+          ..write('albumLastSeenCount: $albumLastSeenCount')
           ..write(')'))
         .toString();
   }
@@ -1720,6 +1776,263 @@ class LevelBestStarRowsCompanion extends UpdateCompanion<LevelBestStarRow> {
   }
 }
 
+class $StickerPositionRowsTable extends StickerPositionRows
+    with TableInfo<$StickerPositionRowsTable, StickerPositionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StickerPositionRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stickerIdMeta = const VerificationMeta(
+    'stickerId',
+  );
+  @override
+  late final GeneratedColumn<String> stickerId = GeneratedColumn<String>(
+    'sticker_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dxMeta = const VerificationMeta('dx');
+  @override
+  late final GeneratedColumn<double> dx = GeneratedColumn<double>(
+    'dx',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dyMeta = const VerificationMeta('dy');
+  @override
+  late final GeneratedColumn<double> dy = GeneratedColumn<double>(
+    'dy',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [stickerId, dx, dy];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sticker_position_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StickerPositionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sticker_id')) {
+      context.handle(
+        _stickerIdMeta,
+        stickerId.isAcceptableOrUnknown(data['sticker_id']!, _stickerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stickerIdMeta);
+    }
+    if (data.containsKey('dx')) {
+      context.handle(_dxMeta, dx.isAcceptableOrUnknown(data['dx']!, _dxMeta));
+    } else if (isInserting) {
+      context.missing(_dxMeta);
+    }
+    if (data.containsKey('dy')) {
+      context.handle(_dyMeta, dy.isAcceptableOrUnknown(data['dy']!, _dyMeta));
+    } else if (isInserting) {
+      context.missing(_dyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stickerId};
+  @override
+  StickerPositionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StickerPositionRow(
+      stickerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sticker_id'],
+      )!,
+      dx: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dx'],
+      )!,
+      dy: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}dy'],
+      )!,
+    );
+  }
+
+  @override
+  $StickerPositionRowsTable createAlias(String alias) {
+    return $StickerPositionRowsTable(attachedDatabase, alias);
+  }
+}
+
+class StickerPositionRow extends DataClass
+    implements Insertable<StickerPositionRow> {
+  final String stickerId;
+  final double dx;
+  final double dy;
+  const StickerPositionRow({
+    required this.stickerId,
+    required this.dx,
+    required this.dy,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['sticker_id'] = Variable<String>(stickerId);
+    map['dx'] = Variable<double>(dx);
+    map['dy'] = Variable<double>(dy);
+    return map;
+  }
+
+  StickerPositionRowsCompanion toCompanion(bool nullToAbsent) {
+    return StickerPositionRowsCompanion(
+      stickerId: Value(stickerId),
+      dx: Value(dx),
+      dy: Value(dy),
+    );
+  }
+
+  factory StickerPositionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StickerPositionRow(
+      stickerId: serializer.fromJson<String>(json['stickerId']),
+      dx: serializer.fromJson<double>(json['dx']),
+      dy: serializer.fromJson<double>(json['dy']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stickerId': serializer.toJson<String>(stickerId),
+      'dx': serializer.toJson<double>(dx),
+      'dy': serializer.toJson<double>(dy),
+    };
+  }
+
+  StickerPositionRow copyWith({String? stickerId, double? dx, double? dy}) =>
+      StickerPositionRow(
+        stickerId: stickerId ?? this.stickerId,
+        dx: dx ?? this.dx,
+        dy: dy ?? this.dy,
+      );
+  StickerPositionRow copyWithCompanion(StickerPositionRowsCompanion data) {
+    return StickerPositionRow(
+      stickerId: data.stickerId.present ? data.stickerId.value : this.stickerId,
+      dx: data.dx.present ? data.dx.value : this.dx,
+      dy: data.dy.present ? data.dy.value : this.dy,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StickerPositionRow(')
+          ..write('stickerId: $stickerId, ')
+          ..write('dx: $dx, ')
+          ..write('dy: $dy')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(stickerId, dx, dy);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StickerPositionRow &&
+          other.stickerId == this.stickerId &&
+          other.dx == this.dx &&
+          other.dy == this.dy);
+}
+
+class StickerPositionRowsCompanion extends UpdateCompanion<StickerPositionRow> {
+  final Value<String> stickerId;
+  final Value<double> dx;
+  final Value<double> dy;
+  final Value<int> rowid;
+  const StickerPositionRowsCompanion({
+    this.stickerId = const Value.absent(),
+    this.dx = const Value.absent(),
+    this.dy = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StickerPositionRowsCompanion.insert({
+    required String stickerId,
+    required double dx,
+    required double dy,
+    this.rowid = const Value.absent(),
+  }) : stickerId = Value(stickerId),
+       dx = Value(dx),
+       dy = Value(dy);
+  static Insertable<StickerPositionRow> custom({
+    Expression<String>? stickerId,
+    Expression<double>? dx,
+    Expression<double>? dy,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stickerId != null) 'sticker_id': stickerId,
+      if (dx != null) 'dx': dx,
+      if (dy != null) 'dy': dy,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StickerPositionRowsCompanion copyWith({
+    Value<String>? stickerId,
+    Value<double>? dx,
+    Value<double>? dy,
+    Value<int>? rowid,
+  }) {
+    return StickerPositionRowsCompanion(
+      stickerId: stickerId ?? this.stickerId,
+      dx: dx ?? this.dx,
+      dy: dy ?? this.dy,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stickerId.present) {
+      map['sticker_id'] = Variable<String>(stickerId.value);
+    }
+    if (dx.present) {
+      map['dx'] = Variable<double>(dx.value);
+    }
+    if (dy.present) {
+      map['dy'] = Variable<double>(dy.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StickerPositionRowsCompanion(')
+          ..write('stickerId: $stickerId, ')
+          ..write('dx: $dx, ')
+          ..write('dy: $dy, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ProgressDatabase extends GeneratedDatabase {
   _$ProgressDatabase(QueryExecutor e) : super(e);
   $ProgressDatabaseManager get managers => $ProgressDatabaseManager(this);
@@ -1735,6 +2048,8 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
       $TracingGuidedSuccessDaysTable(this);
   late final $LevelBestStarRowsTable levelBestStarRows =
       $LevelBestStarRowsTable(this);
+  late final $StickerPositionRowsTable stickerPositionRows =
+      $StickerPositionRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1746,6 +2061,7 @@ abstract class _$ProgressDatabase extends GeneratedDatabase {
     settingsRows,
     tracingGuidedSuccessDays,
     levelBestStarRows,
+    stickerPositionRows,
   ];
 }
 
@@ -2369,6 +2685,7 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String> intensity,
       Value<String?> tracingQueueCursor,
       Value<String?> world,
+      Value<int> albumLastSeenCount,
     });
 typedef $$SettingsRowsTableUpdateCompanionBuilder =
     SettingsRowsCompanion Function({
@@ -2376,6 +2693,7 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String> intensity,
       Value<String?> tracingQueueCursor,
       Value<String?> world,
+      Value<int> albumLastSeenCount,
     });
 
 class $$SettingsRowsTableFilterComposer
@@ -2404,6 +2722,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get world => $composableBuilder(
     column: $table.world,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get albumLastSeenCount => $composableBuilder(
+    column: $table.albumLastSeenCount,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2436,6 +2759,11 @@ class $$SettingsRowsTableOrderingComposer
     column: $table.world,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get albumLastSeenCount => $composableBuilder(
+    column: $table.albumLastSeenCount,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsRowsTableAnnotationComposer
@@ -2460,6 +2788,11 @@ class $$SettingsRowsTableAnnotationComposer
 
   GeneratedColumn<String> get world =>
       $composableBuilder(column: $table.world, builder: (column) => column);
+
+  GeneratedColumn<int> get albumLastSeenCount => $composableBuilder(
+    column: $table.albumLastSeenCount,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsRowsTableTableManager
@@ -2499,11 +2832,13 @@ class $$SettingsRowsTableTableManager
                 Value<String> intensity = const Value.absent(),
                 Value<String?> tracingQueueCursor = const Value.absent(),
                 Value<String?> world = const Value.absent(),
+                Value<int> albumLastSeenCount = const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 intensity: intensity,
                 tracingQueueCursor: tracingQueueCursor,
                 world: world,
+                albumLastSeenCount: albumLastSeenCount,
               ),
           createCompanionCallback:
               ({
@@ -2511,11 +2846,13 @@ class $$SettingsRowsTableTableManager
                 Value<String> intensity = const Value.absent(),
                 Value<String?> tracingQueueCursor = const Value.absent(),
                 Value<String?> world = const Value.absent(),
+                Value<int> albumLastSeenCount = const Value.absent(),
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 intensity: intensity,
                 tracingQueueCursor: tracingQueueCursor,
                 world: world,
+                albumLastSeenCount: albumLastSeenCount,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2890,6 +3227,195 @@ typedef $$LevelBestStarRowsTableProcessedTableManager =
       LevelBestStarRow,
       PrefetchHooks Function()
     >;
+typedef $$StickerPositionRowsTableCreateCompanionBuilder =
+    StickerPositionRowsCompanion Function({
+      required String stickerId,
+      required double dx,
+      required double dy,
+      Value<int> rowid,
+    });
+typedef $$StickerPositionRowsTableUpdateCompanionBuilder =
+    StickerPositionRowsCompanion Function({
+      Value<String> stickerId,
+      Value<double> dx,
+      Value<double> dy,
+      Value<int> rowid,
+    });
+
+class $$StickerPositionRowsTableFilterComposer
+    extends Composer<_$ProgressDatabase, $StickerPositionRowsTable> {
+  $$StickerPositionRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stickerId => $composableBuilder(
+    column: $table.stickerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dx => $composableBuilder(
+    column: $table.dx,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get dy => $composableBuilder(
+    column: $table.dy,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StickerPositionRowsTableOrderingComposer
+    extends Composer<_$ProgressDatabase, $StickerPositionRowsTable> {
+  $$StickerPositionRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stickerId => $composableBuilder(
+    column: $table.stickerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dx => $composableBuilder(
+    column: $table.dx,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get dy => $composableBuilder(
+    column: $table.dy,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StickerPositionRowsTableAnnotationComposer
+    extends Composer<_$ProgressDatabase, $StickerPositionRowsTable> {
+  $$StickerPositionRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stickerId =>
+      $composableBuilder(column: $table.stickerId, builder: (column) => column);
+
+  GeneratedColumn<double> get dx =>
+      $composableBuilder(column: $table.dx, builder: (column) => column);
+
+  GeneratedColumn<double> get dy =>
+      $composableBuilder(column: $table.dy, builder: (column) => column);
+}
+
+class $$StickerPositionRowsTableTableManager
+    extends
+        RootTableManager<
+          _$ProgressDatabase,
+          $StickerPositionRowsTable,
+          StickerPositionRow,
+          $$StickerPositionRowsTableFilterComposer,
+          $$StickerPositionRowsTableOrderingComposer,
+          $$StickerPositionRowsTableAnnotationComposer,
+          $$StickerPositionRowsTableCreateCompanionBuilder,
+          $$StickerPositionRowsTableUpdateCompanionBuilder,
+          (
+            StickerPositionRow,
+            BaseReferences<
+              _$ProgressDatabase,
+              $StickerPositionRowsTable,
+              StickerPositionRow
+            >,
+          ),
+          StickerPositionRow,
+          PrefetchHooks Function()
+        > {
+  $$StickerPositionRowsTableTableManager(
+    _$ProgressDatabase db,
+    $StickerPositionRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StickerPositionRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StickerPositionRowsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$StickerPositionRowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> stickerId = const Value.absent(),
+                Value<double> dx = const Value.absent(),
+                Value<double> dy = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StickerPositionRowsCompanion(
+                stickerId: stickerId,
+                dx: dx,
+                dy: dy,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stickerId,
+                required double dx,
+                required double dy,
+                Value<int> rowid = const Value.absent(),
+              }) => StickerPositionRowsCompanion.insert(
+                stickerId: stickerId,
+                dx: dx,
+                dy: dy,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$StickerPositionRowsTable, StickerPositionRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$ProgressDatabase,
+                    $StickerPositionRowsTable,
+                    StickerPositionRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StickerPositionRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ProgressDatabase,
+      $StickerPositionRowsTable,
+      StickerPositionRow,
+      $$StickerPositionRowsTableFilterComposer,
+      $$StickerPositionRowsTableOrderingComposer,
+      $$StickerPositionRowsTableAnnotationComposer,
+      $$StickerPositionRowsTableCreateCompanionBuilder,
+      $$StickerPositionRowsTableUpdateCompanionBuilder,
+      (
+        StickerPositionRow,
+        BaseReferences<
+          _$ProgressDatabase,
+          $StickerPositionRowsTable,
+          StickerPositionRow
+        >,
+      ),
+      StickerPositionRow,
+      PrefetchHooks Function()
+    >;
 
 class $ProgressDatabaseManager {
   final _$ProgressDatabase _db;
@@ -2909,4 +3435,6 @@ class $ProgressDatabaseManager {
       );
   $$LevelBestStarRowsTableTableManager get levelBestStarRows =>
       $$LevelBestStarRowsTableTableManager(_db, _db.levelBestStarRows);
+  $$StickerPositionRowsTableTableManager get stickerPositionRows =>
+      $$StickerPositionRowsTableTableManager(_db, _db.stickerPositionRows);
 }

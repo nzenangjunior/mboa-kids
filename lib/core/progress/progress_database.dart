@@ -59,8 +59,31 @@ class SettingsRows extends Table {
   /// never chosen yet — the app falls back to its own default then.
   TextColumn get world => text().nullable()();
 
+  /// How many stickers + golden letters were earned the last time the
+  /// album was opened (CLAUDE.md section 10, Refonte visuelle: the home
+  /// screen's album icon shows a badge when this is lower than the
+  /// current total).
+  IntColumn get albumLastSeenCount => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Where a sticker or golden letter was placed in the album's scene
+/// (CLAUDE.md section 10, Refonte visuelle: "la maison du perroquet").
+/// `dx`/`dy` are normalized (0..1) so a position survives a change of
+/// screen size. Nothing writes to this table yet — the album computes a
+/// spiral layout on the fly and falls back to it when a sticker has no
+/// stored position — this table only exists so a future drag-and-drop
+/// feature has somewhere to persist the child's own arrangement without
+/// a schema change.
+class StickerPositionRows extends Table {
+  TextColumn get stickerId => text()();
+  RealColumn get dx => real()();
+  RealColumn get dy => real()();
+
+  @override
+  Set<Column> get primaryKey => {stickerId};
 }
 
 /// The best star count ever reached on one level (CLAUDE.md section 10:
@@ -100,13 +123,14 @@ class TracingGuidedSuccessDays extends Table {
     SettingsRows,
     TracingGuidedSuccessDays,
     LevelBestStarRows,
+    StickerPositionRows,
   ],
 )
 class ProgressDatabase extends _$ProgressDatabase {
   ProgressDatabase(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -119,6 +143,10 @@ class ProgressDatabase extends _$ProgressDatabase {
       if (from < 3) {
         await m.addColumn(settingsRows, settingsRows.world);
         await m.createTable(levelBestStarRows);
+      }
+      if (from < 4) {
+        await m.addColumn(settingsRows, settingsRows.albumLastSeenCount);
+        await m.createTable(stickerPositionRows);
       }
     },
   );

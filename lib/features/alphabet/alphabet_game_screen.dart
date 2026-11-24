@@ -14,8 +14,11 @@ import '../../core/progress/item_state.dart';
 import '../../core/progress/pack_unlocker.dart';
 import '../../core/rewards/star_rating.dart';
 import '../../core/rewards/sticker_catalog.dart';
+import '../../app/theme.dart';
 import '../../shared/widgets/choice_card.dart';
-import '../../shared/widgets/mascot_tap_target.dart';
+import '../../shared/widgets/game_backdrop.dart';
+import '../../shared/widgets/mascot.dart';
+import '../../shared/widgets/progress_dots.dart';
 import '../rewards/bravo_result.dart';
 
 enum _AnswerState { waiting, correct, incorrect }
@@ -126,31 +129,42 @@ class _AlphabetGameScreenState extends ConsumerState<AlphabetGameScreen> {
       _playPromptForRound(world, round);
     }
 
+    final mood = switch (_answerState) {
+      _AnswerState.waiting => MascotMood.idle,
+      _AnswerState.correct => MascotMood.happy,
+      _AnswerState.incorrect => MascotMood.thinking,
+    };
+
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            MascotTapTarget(onTap: () => _replayTarget(world, round)),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: round.choices.map((choice) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: ChoiceCard(
-                    key: Key('choice-${choice.id}'),
-                    label: choice.glyph,
-                    state: _stateFor(choice, round),
-                    isHinted: _aidedMode && choice.id == round.target.id,
-                    onTap: _answerState == _AnswerState.waiting
-                        ? () => _onChoiceTap(world, round, choice)
-                        : null,
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+      body: GameBackdrop(
+        accent: MboaKidsTheme.pink,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Mascot(mood: mood, onTap: () => _replayTarget(world, round)),
+              const SizedBox(height: 16),
+              ProgressDots(total: _mainRoundCount, filled: _roundIndex),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: round.choices.map((choice) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ChoiceCard(
+                      key: Key('choice-${choice.id}'),
+                      label: choice.glyph,
+                      state: _stateFor(choice, round),
+                      isHinted: _aidedMode && choice.id == round.target.id,
+                      onTap: _answerState == _AnswerState.waiting
+                          ? () => _onChoiceTap(world, round, choice)
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -13,6 +13,7 @@ import 'package:mboa_kids/core/progress/drift_progress_repository.dart';
 import 'package:mboa_kids/core/progress/progress_database.dart';
 import 'package:mboa_kids/core/progress/progress_repository.dart';
 import 'package:mboa_kids/features/home/home_screen.dart';
+import 'package:mboa_kids/features/home/parent_gate_dialog.dart';
 
 class _FakeAssetBundle extends CachingAssetBundle {
   _FakeAssetBundle(this.files);
@@ -70,7 +71,13 @@ Widget _buildTestApp({ProgressRepository? repository}) {
     child: MaterialApp.router(
       routerConfig: GoRouter(
         initialLocation: '/',
-        routes: [GoRoute(path: '/', builder: (context, state) => const HomeScreen())],
+        routes: [
+          GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+          GoRoute(
+            path: '/debug/progress',
+            builder: (context, state) => const Scaffold(body: Text('DEBUG_MARKER')),
+          ),
+        ],
       ),
     ),
   );
@@ -144,5 +151,76 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(container.read(worldProvider), 'en');
+  });
+
+  group('parent gate (CLAUDE.md section 10: appui long de 2 s + calcul)', () {
+    testWidgets('a quick tap on the lock does not open the gate', (WidgetTester tester) async {
+      await tester.pumpWidget(_buildTestApp());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.lock_outline));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(ParentGateDialog), findsNothing);
+    });
+
+    testWidgets('holding the lock for 2 seconds opens the gate', (WidgetTester tester) async {
+      await tester.pumpWidget(_buildTestApp());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final gesture = await tester.startGesture(tester.getCenter(find.byIcon(Icons.lock_outline)));
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.byType(ParentGateDialog), findsOneWidget);
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 100));
+    });
+
+    testWidgets('a correct answer opens the debug panel', (WidgetTester tester) async {
+      await tester.pumpWidget(_buildTestApp());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final gesture = await tester.startGesture(tester.getCenter(find.byIcon(Icons.lock_outline)));
+      await tester.pump(const Duration(seconds: 2));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final question = tester.widget<Text>(find.textContaining('+')).data!;
+      final numbers = RegExp(r'(\d+) \+ (\d+)').firstMatch(question)!;
+      final correct = int.parse(numbers.group(1)!) + int.parse(numbers.group(2)!);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, '$correct'));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('DEBUG_MARKER'), findsOneWidget);
+    });
+
+    testWidgets('a wrong answer closes the gate without navigating away', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(_buildTestApp());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final gesture = await tester.startGesture(tester.getCenter(find.byIcon(Icons.lock_outline)));
+      await tester.pump(const Duration(seconds: 2));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final question = tester.widget<Text>(find.textContaining('+')).data!;
+      final numbers = RegExp(r'(\d+) \+ (\d+)').firstMatch(question)!;
+      final correct = int.parse(numbers.group(1)!) + int.parse(numbers.group(2)!);
+
+      final wrongButton = tester
+          .widgetList<ElevatedButton>(find.byType(ElevatedButton))
+          .firstWhere((button) => (button.child as Text).data != '$correct');
+      await tester.tap(find.byWidget(wrongButton));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(ParentGateDialog), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.text('DEBUG_MARKER'), findsNothing);
+    });
   });
 }

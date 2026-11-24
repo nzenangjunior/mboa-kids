@@ -11,9 +11,10 @@ enum _DailyPathPhase { alphabet, tracing }
 
 /// "Parcours du jour" (CLAUDE.md section 10): one alphabet game, then one
 /// tracing session (capped at 5 traces), finishing on a single combined
-/// Bravo screen. Stops early — skipping straight to Bravo with whatever
-/// was already earned — if the configured session duration (10 min by
-/// default) is used up after the alphabet game.
+/// Bravo screen. Stops early — straight to Bravo with whatever was
+/// already earned, then the "mascotte dort" screen instead of a second
+/// activity (CLAUDE.md section 7) — if the configured session duration
+/// (10 min by default) is used up after the alphabet game.
 class DailyPathScreen extends ConsumerStatefulWidget {
   const DailyPathScreen({super.key});
 
@@ -41,6 +42,7 @@ class _DailyPathScreenState extends ConsumerState<DailyPathScreen> {
   void _onAlphabetFinished(BravoResult result) {
     _alphabetResult = result;
     if (_durationExceeded) {
+      ref.read(dailyPathSleepsAfterProvider.notifier).state = true;
       _finish(result);
       return;
     }

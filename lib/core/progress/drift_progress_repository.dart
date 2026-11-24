@@ -232,5 +232,37 @@ class DriftProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<int> albumLastSeenCount() async {
+    final row = await (_db.select(
+      _db.settingsRows,
+    )..where((t) => t.id.equals(0))).getSingleOrNull();
+    return row?.albumLastSeenCount ?? 0;
+  }
+
+  @override
+  Future<void> setAlbumLastSeenCount(int count) {
+    return _db
+        .into(_db.settingsRows)
+        .insertOnConflictUpdate(
+          SettingsRowsCompanion.insert(id: const Value(0), albumLastSeenCount: Value(count)),
+        );
+  }
+
+  @override
+  Future<Map<String, (double, double)>> stickerPositions() async {
+    final rows = await _db.select(_db.stickerPositionRows).get();
+    return {for (final row in rows) row.stickerId: (row.dx, row.dy)};
+  }
+
+  @override
+  Future<void> setStickerPosition(String stickerId, double dx, double dy) {
+    return _db
+        .into(_db.stickerPositionRows)
+        .insertOnConflictUpdate(
+          StickerPositionRowsCompanion.insert(stickerId: stickerId, dx: dx, dy: dy),
+        );
+  }
+
+  @override
   Future<void> dispose() => _db.close();
 }

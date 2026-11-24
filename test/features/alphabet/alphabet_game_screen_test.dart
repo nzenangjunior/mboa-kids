@@ -106,6 +106,19 @@ const _alphabetJson = '''
 }
 ''';
 
+/// A bounded stand-in for `pumpAndSettle()`: the mascot's idle animation
+/// (`Mascot`, CLAUDE.md section 10) runs continuously, like the Bravo
+/// screen's confetti, so a real `pumpAndSettle()` never finds a moment
+/// with no frame scheduled and times out. This instead pumps a fixed,
+/// generous number of frames — enough for any pending async work
+/// (provider resolution, database reads) to settle, without waiting on
+/// the animation itself.
+Future<void> _pumpUntilIdle(WidgetTester tester) async {
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+}
+
 Widget _buildTestApp({
   ProgressRepository? progressRepository,
   AudioService? audioService,
@@ -152,7 +165,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(find.byType(ChoiceCard), findsNWidgets(3));
   });
@@ -161,10 +174,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     await tester.tap(find.byType(ChoiceCard).first);
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(find.text('Continuer'), findsNothing);
 
@@ -179,7 +192,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     final before = tester
         .widgetList<ChoiceCard>(find.byType(ChoiceCard))
@@ -187,7 +200,7 @@ void main() {
         .toSet();
 
     await tester.tap(find.byType(ChoiceCard).first);
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     final tappedWasWrong = tester
         .widgetList<ChoiceCard>(find.byType(ChoiceCard))
@@ -198,7 +211,7 @@ void main() {
     }
 
     await tester.pump(const Duration(milliseconds: 1700));
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     final after = tester
         .widgetList<ChoiceCard>(find.byType(ChoiceCard))
@@ -211,7 +224,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     for (var attempt = 0; attempt < 40; attempt++) {
       if (find.text('BRAVO_MARKER').evaluate().isNotEmpty) break;
@@ -219,7 +232,7 @@ void main() {
       final count = tester.widgetList<ChoiceCard>(cards).length;
       await tester.tap(cards.at(attempt % count));
       await tester.pump(const Duration(milliseconds: 1700));
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
     }
 
     expect(find.text('BRAVO_MARKER'), findsOneWidget);
@@ -233,10 +246,10 @@ void main() {
     final repository = DriftProgressRepository(db);
 
     await tester.pumpWidget(_buildTestApp(progressRepository: repository));
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     await tester.tap(find.byType(ChoiceCard).first);
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     const letterIds = [
       'fr.letter.A',
@@ -286,7 +299,7 @@ void main() {
     }
 
     await tester.pumpWidget(_buildTestApp(progressRepository: repository));
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(find.byType(ChoiceCard), findsNWidgets(2));
     final cards = tester.widgetList<ChoiceCard>(find.byType(ChoiceCard));
@@ -299,7 +312,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(audioService: _NeverCompletingAudioService()),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       // Every tap below waits past the feedback timer (1700ms > the 1500ms
       // auto-advance and the 1000ms wrong-answer highlight), so each one
@@ -318,7 +331,7 @@ void main() {
         final tapIndex = hintedIndex >= 0 ? hintedIndex : attempt % widgets.length;
         await tester.tap(cards.at(tapIndex));
         await tester.pump(const Duration(milliseconds: 1700));
-        await tester.pumpAndSettle();
+        await _pumpUntilIdle(tester);
 
         final stillHasChoices = find.byType(ChoiceCard).evaluate().isNotEmpty;
         final reachedBravo = find.text('BRAVO_MARKER').evaluate().isNotEmpty;
@@ -339,7 +352,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(audioService: _NeverCompletingAudioService()),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       final firstChoice = find.byType(ChoiceCard).first;
       for (var i = 0; i < 5; i++) {
@@ -348,7 +361,7 @@ void main() {
       }
 
       await tester.pump(const Duration(milliseconds: 1700));
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       expect(find.byType(ChoiceCard), findsWidgets);
     },
@@ -359,7 +372,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(_buildTestApp(packNumber: 1));
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       for (var round = 0; round < 5; round++) {
         await tester.tap(find.byType(ChoiceCard).first);
@@ -370,7 +383,7 @@ void main() {
         expect(['A', 'B', 'C'], contains(target.label));
 
         await tester.pump(const Duration(milliseconds: 1700));
-        await tester.pumpAndSettle();
+        await _pumpUntilIdle(tester);
       }
     });
 
@@ -379,7 +392,7 @@ void main() {
     ) async {
       BravoResult? result;
       await tester.pumpWidget(_buildTestApp(onFinished: (r) => result = r));
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       for (var attempt = 0; attempt < 40; attempt++) {
         if (result != null) break;
@@ -387,7 +400,7 @@ void main() {
         final count = tester.widgetList<ChoiceCard>(cards).length;
         await tester.tap(cards.at(attempt % count));
         await tester.pump(const Duration(milliseconds: 1700));
-        await tester.pumpAndSettle();
+        await _pumpUntilIdle(tester);
       }
 
       expect(result, isNotNull);
@@ -408,7 +421,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(progressRepository: repository, packNumber: 1),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       for (var attempt = 0; attempt < 40; attempt++) {
         if (find.text('BRAVO_MARKER').evaluate().isNotEmpty) break;
@@ -416,7 +429,7 @@ void main() {
         final count = tester.widgetList<ChoiceCard>(cards).length;
         await tester.tap(cards.at(attempt % count));
         await tester.pump(const Duration(milliseconds: 1700));
-        await tester.pumpAndSettle();
+        await _pumpUntilIdle(tester);
       }
 
       expect(find.text('BRAVO_MARKER'), findsOneWidget);

@@ -173,12 +173,21 @@ fin de chaque étape. Après chaque étape : `flutter analyze`, `flutter test`, 
    (déjà câblées) avec leur disponibilité visible dans `/debug/progress`, build
    `flutter build apk --release --split-per-abi` signé avec la clé debug pour un premier test sur
    téléphone Android (hors tablette).
-9. **Refonte visuelle** : mascotte perroquet gris (dessinée en formes simples, pas d'image
-   téléchargée) avec 4 états (repos, joie, réflexion, sommeil), présente sur l'accueil, le chemin de
-   niveaux et dans les jeux ; accueil en scène (ciel, sol, baobab, bulle de parole, badge album,
-   cadenas parent en appui long de 2 s) ; chemin de niveaux en tracé sinueux avec le perroquet posé
-   sur le niveau en cours ; jeux avec fond décoré par île et barre de progression à 5 points ; album
-   devenu la maison du perroquet, décorée avec les autocollants ; motifs pagne/ndop discrets en fond.
+9. **Refonte visuelle** : mascotte perroquet gris isolée dans un seul widget `Mascot(mood:)`
+   (dessinée en formes simples, pas d'image téléchargée ; interface stable pour pouvoir plus tard la
+   remplacer par une illustration professionnelle sans toucher aux écrans) avec 4 humeurs (repos,
+   joie, réflexion, sommeil), présente sur l'accueil, le chemin de niveaux, dans les jeux et sur
+   Bravo ; accueil en scène (ciel, sol, baobab qui bouge au toucher, bulle de parole, badge album,
+   cadenas parent en appui long de 2 s) ; chemin de niveaux en tracé pointillé sinueux avec le
+   perroquet posé sur le niveau en cours, bouton maison ; jeux avec fond décoré par île et barre de
+   progression à 5 points ; album devenu la maison du perroquet (autocollants placés en spirale
+   autour de lui ; position de chaque autocollant déjà stockable en base pour un futur
+   glisser-déposer, non codé) ; motifs pagne/ndop discrets en fond ; transitions animées (fondu +
+   zoom léger) entre tous les écrans ; écran « la mascotte dort » (section 7) quand la séance
+   s'arrête tôt, au lieu d'enchaîner directement sur le tracé.
+   Cadenas parent : calcul (addition de deux nombres entre 3 et 9) à 3 réponses au choix plutôt
+   qu'au clavier numérique (voir section 9) — solution temporaire tant que l'espace parent (étape 13)
+   n'existe pas, à revoir à ce moment-là.
    Règles inchangées : aucun texte pour l'enfant, boutons ≥ 64 dp, intensité réglable, fluide sur
    Android 10 d'entrée de gamme.
 10. **Minuscules (monde anglais)** : `assets/content/tracing/en_lowercase.json` séparé des

@@ -7,7 +7,9 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../core/audio/audio_service.dart';
-import '../../shared/widgets/mascot_tap_target.dart';
+import '../../shared/widgets/home_button.dart';
+import '../../shared/widgets/mascot.dart';
+import '../../shared/widgets/pagne_pattern.dart';
 
 /// The 4 islands (CLAUDE.md section 10): Alphabet and Tracé are open now,
 /// Nombres and Mots are shown locked (étapes 7-8, not built yet). No text
@@ -57,46 +59,52 @@ class _IslandMapScreenState extends ConsumerState<IslandMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            MascotTapTarget(onTap: _playPrompt),
-            Expanded(
-              child: Center(
-                child: Wrap(
-                  spacing: 24,
-                  runSpacing: 24,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _IslandCard(
-                      icon: Icons.abc,
-                      color: MboaKidsTheme.pink,
-                      onTap: () => context.go('/islands/alphabet'),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: PagnePattern(color: MboaKidsTheme.terracotta)),
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Mascot(onTap: _playPrompt),
+                Expanded(
+                  child: Center(
+                    child: Wrap(
+                      spacing: 24,
+                      runSpacing: 24,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _IslandCard(
+                          icon: Icons.abc,
+                          color: MboaKidsTheme.pink,
+                          onTap: () => context.go('/islands/alphabet'),
+                        ),
+                        _IslandCard(
+                          icon: Icons.edit,
+                          color: MboaKidsTheme.purple,
+                          onTap: () => context.go('/islands/tracing'),
+                        ),
+                        _IslandCard(
+                          icon: Icons.pin,
+                          color: Colors.orange,
+                          locked: true,
+                          onTap: _onLocked,
+                        ),
+                        _IslandCard(
+                          icon: Icons.image,
+                          color: Colors.teal,
+                          locked: true,
+                          onTap: _onLocked,
+                        ),
+                      ],
                     ),
-                    _IslandCard(
-                      icon: Icons.edit,
-                      color: MboaKidsTheme.purple,
-                      onTap: () => context.go('/islands/tracing'),
-                    ),
-                    _IslandCard(
-                      icon: Icons.pin,
-                      color: Colors.orange,
-                      locked: true,
-                      onTap: _onLocked,
-                    ),
-                    _IslandCard(
-                      icon: Icons.image,
-                      color: Colors.teal,
-                      locked: true,
-                      onTap: _onLocked,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const Align(alignment: Alignment.bottomLeft, child: HomeButton()),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

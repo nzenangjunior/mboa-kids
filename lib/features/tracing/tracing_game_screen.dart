@@ -15,7 +15,9 @@ import '../../core/rewards/sticker_catalog.dart';
 import '../../core/tracing/tracing_glyph.dart';
 import '../../core/tracing/tracing_matcher.dart';
 import '../../core/tracing/tracing_queue.dart';
-import '../../shared/widgets/mascot_tap_target.dart';
+import '../../shared/widgets/game_backdrop.dart';
+import '../../shared/widgets/mascot.dart';
+import '../../shared/widgets/progress_dots.dart';
 import '../rewards/bravo_result.dart';
 import 'tracing_canvas_painter.dart';
 
@@ -478,13 +480,21 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       if (remaining.isNotEmpty) nextStrokeIndex = remaining.first;
     }
 
+    final mood = _success
+        ? MascotMood.happy
+        : (_itemHadFailedAttempt ? MascotMood.thinking : MascotMood.idle);
+
     return Scaffold(
-      body: SafeArea(
+      body: GameBackdrop(
+        accent: MboaKidsTheme.purple,
+        child: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            MascotTapTarget(onTap: _playPromptForCurrent),
-            const SizedBox(height: 16),
+            Mascot(mood: mood, onTap: _playPromptForCurrent),
+            const SizedBox(height: 8),
+            ProgressDots(total: _queue!.length, filled: _index),
+            const SizedBox(height: 8),
             Expanded(
               child: Center(
                 child: Padding(
@@ -545,6 +555,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
             ),
           ],
         ),
+      ),
       ),
     );
   }

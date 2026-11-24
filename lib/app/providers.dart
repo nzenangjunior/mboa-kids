@@ -116,6 +116,16 @@ final sessionDurationProvider = Provider<Duration>(
   (ref) => const Duration(minutes: 10),
 );
 
+/// Set by the daily path right before navigating to Bravo when the
+/// session duration ran out (CLAUDE.md section 7: "après le jeu en cours
+/// → écran « la mascotte dort »"). [BravoScreen] reads and resets it once,
+/// to decide whether its own button leads to `/mascot-sleeping` instead
+/// of straight to the home screen. A provider rather than a route
+/// argument: it only exists to carry this one transient flag between two
+/// screens in the same navigation, without changing the `BravoResult`
+/// extra that every other Bravo navigation already relies on.
+final dailyPathSleepsAfterProvider = StateProvider<bool>((ref) => false);
+
 /// How long a level's best-stars lookup waits before giving up and
 /// showing 0 instead (CLAUDE.md section 13: a slow or stuck read must
 /// never freeze the whole path — the level still shows, just without its
@@ -233,6 +243,36 @@ final tracingLevelsProvider = FutureProvider.family<List<TracingLevelView>, Stri
         bestStars: level.bestStars,
       ),
   ];
+});
+
+/// Stickers + golden (acquired) letters earned so far, across both worlds
+/// — the same count the album screen itself shows. Used by the home
+/// screen's "new sticker" badge (CLAUDE.md section 10, Refonte visuelle).
+final albumTotalEarnedCountProvider = FutureProvider<int>((ref) async {
+  final repository = ref.read(progressRepositoryProvider);
+  final fr = await ref.watch(alphabetContentProvider('fr').future);
+  final en = await ref.watch(alphabetContentProvider('en').future);
+  final earnedStickerIds = await repository.earnedStickerIds();
+
+  var acquiredCount = 0;
+  for (final item in [...fr.items, ...en.items]) {
+    final snapshot = await repository.snapshotFor(item.id);
+    if (snapshot.firstAcquiredAt != null) acquiredCount++;
+  }
+  return earnedStickerIds.length + acquiredCount;
+});
+
+final albumHasNewStickerProvider = FutureProvider<bool>((ref) async {
+  final total = await ref.watch(albumTotalEarnedCountProvider.future);
+  final repository = ref.read(progressRepositoryProvider);
+  int lastSeen;
+  try {
+    lastSeen = await repository.albumLastSeenCount().timeout(_levelStarsLookupTimeout);
+  } catch (error) {
+    debugPrint('[album] albumLastSeenCount() timed out or failed: $error');
+    lastSeen = 0;
+  }
+  return total > lastSeen;
 });
 
 const _promptSpokenText = {
