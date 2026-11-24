@@ -67,6 +67,42 @@ void main() {
     });
   });
 
+  group('isGoodStrokeTrace', () {
+    const horizontal = TracingStroke([TracingPoint(0.1, 0.5), TracingPoint(0.9, 0.5)]);
+    const vertical = TracingStroke([TracingPoint(0.3, 0.1), TracingPoint(0.3, 0.9)]);
+
+    test('a trace that follows just this one stroke passes', () {
+      final drawn = _sampleAlongLine(0.1, 0.9);
+
+      expect(
+        isGoodStrokeTrace(referenceStroke: horizontal, drawnPoints: drawn),
+        isTrue,
+      );
+    });
+
+    test('a trace of a different stroke does not match this one', () {
+      final drawn = [
+        for (var i = 0; i < 20; i++) Offset(0.3, 0.1 + 0.8 * i / 19),
+      ];
+
+      expect(
+        isGoodStrokeTrace(referenceStroke: horizontal, drawnPoints: drawn),
+        isFalse,
+      );
+      expect(
+        isGoodStrokeTrace(referenceStroke: vertical, drawnPoints: drawn),
+        isTrue,
+      );
+    });
+
+    test('fewer than two drawn points never passes', () {
+      expect(
+        isGoodStrokeTrace(referenceStroke: horizontal, drawnPoints: const []),
+        isFalse,
+      );
+    });
+  });
+
   group('densifyGlyph', () {
     test('samples points along every segment of every stroke', () {
       final dense = densifyGlyph(_straightLine, samplesPerSegment: 4);

@@ -51,7 +51,7 @@ class TracingGameScreen extends ConsumerStatefulWidget {
 }
 
 class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _random = Random();
 
   List<TracingSessionItem>? _queue;
@@ -72,11 +72,25 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
   int _tracedFirstTryCount = 0;
   final List<String> _newlyAcquiredGlyphs = [];
 
-  final List<List<Offset>> _drawnStrokes = [];
+  /// A letter is drawn stroke by stroke, lifting the finger between
+  /// strokes (CLAUDE.md section 10): each matched stroke's points are
+  /// kept here permanently (even if a later stroke then fails) and the
+  /// stroke currently being drawn is tracked separately.
+  final List<List<Offset>> _completedStrokes = [];
+  final Set<int> _completedStrokeIndices = {};
+  List<Offset> _currentStrokePoints = [];
+
+  /// Which stroke a replay is demonstrating (only that one, not the
+  /// whole letter) — set right before [_replayController] starts.
+  int? _replayStrokeIndex;
 
   Timer? _advanceTimer;
   late final ConfettiController _confetti;
   late final AnimationController _replayController;
+
+  /// Pulses the next expected stroke's start dot in guided mode, so the
+  /// child knows where to begin without needing to search for it.
+  late final AnimationController _blinkController;
 
   /// Cached the first time it resolves, so [dispose] can stop it without
   /// touching `ref` (Riverpod forbids `ref.read` once a widget is being
@@ -90,6 +104,8 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     _confetti = ConfettiController(duration: const Duration(seconds: 2));
     _replayController = AnimationController(vsync: this, duration: _replayDuration)
       ..addStatusListener(_onReplayStatusChanged);
+    _blinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
+      ..repeat(reverse: true);
     _load();
   }
 
@@ -98,6 +114,7 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
     _advanceTimer?.cancel();
     _confetti.dispose();
     _replayController.dispose();
+    _blinkController.dispose();
     unawaited(_audio?.stop());
     super.dispose();
   }
@@ -189,44 +206,89 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       (localPosition.dy / box.height).clamp(0.0, 1.0),
     );
     setState(() {
-      if (newStroke || _drawnStrokes.isEmpty) {
-        _drawnStrokes.add([normalized]);
+      if (newStroke) {
+        _currentStrokePoints = [normalized];
         return;
       }
-      final current = _drawnStrokes.last;
-      if (current.isEmpty ||
-          (current.last - normalized).distance > _minDistanceBetweenPoints) {
-        current.add(normalized);
+      if (_currentStrokePoints.isEmpty ||
+          (_currentStrokePoints.last - normalized).distance > _minDistanceBetweenPoints) {
+        _currentStrokePoints.add(normalized);
       }
     });
   }
 
+  /// Which strokes of [glyph] are still left to do, in stroke order — the
+  /// first entry is the "expected next" one.
+  List<int> _remainingStrokeIndices(TracingGlyph glyph) {
+    return [
+      for (var i = 0; i < glyph.strokes.length; i++)
+        if (!_completedStrokeIndices.contains(i)) i,
+    ];
+  }
+
+  /// One continuous gesture just ended: it is matched against the
+  /// strokes not yet done, trying the expected one first but accepting
+  /// any other that fits (CLAUDE.md section 10: a 4-year-old isn't
+  /// blocked on stroke order, though it is noted — see
+  /// [_recordItemCompleted]'s use of [_itemHadFailedAttempt]).
   void _onPanEnd() {
     if (_success || _replaying) return;
     final glyph = _tracingContent![_queue![_index].item.glyphKey];
     if (glyph == null) return;
-    final allPoints = [for (final stroke in _drawnStrokes) ...stroke];
-    final tolerance = ref.read(tracingToleranceProvider);
-    if (!isGoodTrace(glyph: glyph, drawnPoints: allPoints, tolerance: tolerance)) {
-      _startReplay();
+    if (_currentStrokePoints.length < 2) {
+      setState(() => _currentStrokePoints = []);
       return;
     }
 
-    setState(() => _success = true);
-    unawaited(_playSuccessAudio());
-    _advanceTimer?.cancel();
-    _advanceTimer = Timer(_successAdvanceDelay, _onItemSucceeded);
+    final tolerance = ref.read(tracingToleranceProvider);
+    final remaining = _remainingStrokeIndices(glyph);
+    final nextExpected = remaining.first;
+    int? matchedIndex;
+    for (final i in remaining) {
+      if (isGoodStrokeTrace(
+        referenceStroke: glyph.strokes[i],
+        drawnPoints: _currentStrokePoints,
+        tolerance: tolerance,
+      )) {
+        matchedIndex = i;
+        break;
+      }
+    }
+
+    if (matchedIndex == null) {
+      _startReplay(nextExpected);
+      return;
+    }
+    if (matchedIndex != nextExpected) {
+      // A different stroke than expected was drawn correctly: accepted
+      // (no punishment for order at this age), but counted the same way
+      // as a failed attempt so it shows up in the progression.
+      _itemHadFailedAttempt = true;
+    }
+
+    setState(() {
+      _completedStrokeIndices.add(matchedIndex!);
+      _completedStrokes.add(List.of(_currentStrokePoints));
+      _currentStrokePoints = [];
+    });
+
+    if (_completedStrokeIndices.length == glyph.strokes.length) {
+      setState(() => _success = true);
+      unawaited(_playSuccessAudio());
+      _advanceTimer?.cancel();
+      _advanceTimer = Timer(_successAdvanceDelay, _onItemSucceeded);
+    }
   }
 
-  /// A failed attempt is never a punishment (CLAUDE.md rule 5): the guide
-  /// (shown even in "sans guide" mode, just for this demo) plays a
-  /// traveling marker along the stroke and the prompt is replayed, then
-  /// the child simply tries again.
-  void _startReplay() {
+  /// A failed attempt is never a punishment (CLAUDE.md rule 5): only the
+  /// stroke that was being attempted is replayed and cleared — strokes
+  /// already completed earlier in this same letter stay on screen.
+  void _startReplay(int strokeIndex) {
     _itemHadFailedAttempt = true;
+    _replayStrokeIndex = strokeIndex;
     setState(() {
       _replaying = true;
-      _drawnStrokes.clear();
+      _currentStrokePoints = [];
     });
     unawaited(_playPromptForCurrent());
     _replayController
@@ -294,7 +356,9 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
       _index++;
       _success = false;
       _itemHadFailedAttempt = false;
-      _drawnStrokes.clear();
+      _completedStrokes.clear();
+      _completedStrokeIndices.clear();
+      _currentStrokePoints = [];
     });
     unawaited(_prepareAndPromptCurrentItem());
   }
@@ -355,6 +419,11 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
 
     final item = _queue![_index].item;
     final glyph = _tracingContent![item.glyphKey];
+    int? nextStrokeIndex;
+    if (glyph != null && _guided && !_replaying && !_success) {
+      final remaining = _remainingStrokeIndices(glyph);
+      if (remaining.isNotEmpty) nextStrokeIndex = remaining.first;
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -393,14 +462,21 @@ class _TracingGameScreenState extends ConsumerState<TracingGameScreen>
                                   ),
                                   onPanEnd: (_) => _onPanEnd(),
                                   child: AnimatedBuilder(
-                                    animation: _replayController,
+                                    animation: Listenable.merge([
+                                      _replayController,
+                                      _blinkController,
+                                    ]),
                                     builder: (context, _) => CustomPaint(
                                       size: box,
                                       painter: TracingCanvasPainter(
                                         glyph: glyph,
-                                        drawnStrokes: _drawnStrokes,
+                                        completedStrokes: _completedStrokes,
+                                        currentStrokePoints: _currentStrokePoints,
                                         success: _success,
                                         showGuide: _guided,
+                                        nextStrokeIndex: nextStrokeIndex,
+                                        blinkValue: _blinkController.value,
+                                        replayStrokeIndex: _replayStrokeIndex,
                                         replayProgress:
                                             _replaying ? _replayController.value : null,
                                       ),

@@ -119,6 +119,69 @@ final _straightLineGlyph = TracingGlyph(
   ],
 );
 
+/// Multi-stroke glyphs matching the real letters/digit closely enough for
+/// stroke-by-stroke tests (CLAUDE.md section 10: a real finger lifts
+/// between strokes, so these must have the same strokes a real letter
+/// has, unlike [_straightLineGlyph] which is single-stroke on purpose for
+/// the simpler whole-item tests above).
+const _testGlyphs = {
+  'E': TracingGlyph(
+    glyph: 'E',
+    strokes: [
+      TracingStroke([TracingPoint(0.3, 0.1), TracingPoint(0.3, 0.9)]),
+      TracingStroke([TracingPoint(0.3, 0.1), TracingPoint(0.7, 0.1)]),
+      TracingStroke([TracingPoint(0.3, 0.5), TracingPoint(0.6, 0.5)]),
+      TracingStroke([TracingPoint(0.3, 0.9), TracingPoint(0.7, 0.9)]),
+    ],
+  ),
+  'A': TracingGlyph(
+    glyph: 'A',
+    strokes: [
+      TracingStroke([TracingPoint(0.5, 0.1), TracingPoint(0.2, 0.9)]),
+      TracingStroke([TracingPoint(0.5, 0.1), TracingPoint(0.8, 0.9)]),
+      TracingStroke([TracingPoint(0.3, 0.6), TracingPoint(0.7, 0.6)]),
+    ],
+  ),
+  'H': TracingGlyph(
+    glyph: 'H',
+    strokes: [
+      TracingStroke([TracingPoint(0.3, 0.1), TracingPoint(0.3, 0.9)]),
+      TracingStroke([TracingPoint(0.7, 0.1), TracingPoint(0.7, 0.9)]),
+      TracingStroke([TracingPoint(0.3, 0.5), TracingPoint(0.7, 0.5)]),
+    ],
+  ),
+  'T': TracingGlyph(
+    glyph: 'T',
+    strokes: [
+      TracingStroke([TracingPoint(0.5, 0.1), TracingPoint(0.5, 0.9)]),
+      TracingStroke([TracingPoint(0.2, 0.1), TracingPoint(0.8, 0.1)]),
+    ],
+  ),
+  'R': TracingGlyph(
+    glyph: 'R',
+    strokes: [
+      TracingStroke([TracingPoint(0.3, 0.1), TracingPoint(0.3, 0.9)]),
+      TracingStroke([
+        TracingPoint(0.3, 0.1),
+        TracingPoint(0.6, 0.3),
+        TracingPoint(0.3, 0.5),
+      ]),
+      TracingStroke([TracingPoint(0.3, 0.5), TracingPoint(0.7, 0.9)]),
+    ],
+  ),
+  '4': TracingGlyph(
+    glyph: '4',
+    strokes: [
+      TracingStroke([
+        TracingPoint(0.6, 0.1),
+        TracingPoint(0.25, 0.6),
+        TracingPoint(0.75, 0.6),
+      ]),
+      TracingStroke([TracingPoint(0.6, 0.1), TracingPoint(0.6, 0.9)]),
+    ],
+  ),
+};
+
 /// `writeMax: 0` so no test here accidentally picks up a number item —
 /// the number-specific test overrides this explicitly.
 const _noNumbersJson = '''
@@ -217,6 +280,56 @@ List<Offset> _lineScreenPoints(Rect canvas, {int steps = 16}) {
   ];
 }
 
+/// Densely samples along the bent path defined by [keyPoints] (normalized
+/// 0..1), the same way the real matcher densifies a stroke — a multi-point
+/// stroke (e.g. R's bump) needs its actual bent shape traced, not a
+/// straight shortcut between its first and last point.
+List<Offset> _strokeScreenPoints(
+  Rect canvas,
+  List<TracingPoint> keyPoints, {
+  int samplesPerSegment = 8,
+}) {
+  final points = <Offset>[];
+  for (var i = 0; i < keyPoints.length - 1; i++) {
+    final a = keyPoints[i];
+    final b = keyPoints[i + 1];
+    for (var s = 0; s <= samplesPerSegment; s++) {
+      final t = s / samplesPerSegment;
+      final nx = a.x + (b.x - a.x) * t;
+      final ny = a.y + (b.y - a.y) * t;
+      points.add(canvas.topLeft + Offset(canvas.width * nx, canvas.height * ny));
+    }
+  }
+  return points;
+}
+
+/// Draws exactly one stroke, lifting the finger at the end (CLAUDE.md
+/// section 10: a real letter is drawn stroke by stroke, not in one
+/// continuous gesture).
+Future<void> _dragStroke(WidgetTester tester, List<TracingPoint> keyPoints) async {
+  final canvasRect = tester.getRect(_findTracingCanvas());
+  await _dragAlong(tester, _strokeScreenPoints(canvasRect, keyPoints));
+}
+
+/// Traces every stroke of [glyph] in order, lifting the finger between
+/// each one, and waits out the final success delay.
+Future<void> _traceGlyphStrokeByStroke(
+  WidgetTester tester,
+  TracingGlyph glyph, {
+  required bool isLastOfActivity,
+}) async {
+  for (final stroke in glyph.strokes) {
+    await _dragStroke(tester, stroke.points);
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  await tester.pump(const Duration(milliseconds: 1700));
+  if (isLastOfActivity) {
+    await tester.pump(const Duration(milliseconds: 500));
+  } else {
+    await _pumpUntilIdle(tester);
+  }
+}
+
 /// Flutter's own Material widgets (buttons, ripples...) also use
 /// [CustomPaint] internally, so a bare `find.byType(CustomPaint)` can match
 /// the wrong one; this finds the tracing canvas specifically.
@@ -229,6 +342,19 @@ Finder _findTracingCanvas() {
 TracingCanvasPainter _currentPainter(WidgetTester tester) {
   final widget = tester.widget<CustomPaint>(_findTracingCanvas());
   return widget.painter as TracingCanvasPainter;
+}
+
+/// A bounded stand-in for `pumpAndSettle()`: the screen's blink indicator
+/// (the next expected stroke's pulsing start dot, CLAUDE.md section 10)
+/// animates continuously while guided, like the Bravo screen's confetti,
+/// so a real `pumpAndSettle()` never finds a moment with no frame
+/// scheduled and times out. This instead pumps a fixed, generous number of
+/// frames — enough for any pending async work (provider resolution,
+/// database reads) to settle, without waiting on the animation itself.
+Future<void> _pumpUntilIdle(WidgetTester tester) async {
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
 }
 
 /// Traces the current item once (one pass now — guided or unguided is
@@ -245,7 +371,7 @@ Future<void> _traceCurrentItem(WidgetTester tester, {required bool isLastOfActiv
   if (isLastOfActivity) {
     await tester.pump(const Duration(milliseconds: 500));
   } else {
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
   }
 }
 
@@ -254,7 +380,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(_findTracingCanvas(), findsOneWidget);
   });
@@ -264,7 +390,7 @@ void main() {
   ) async {
     final audio = _RecordingAudioService();
     await tester.pumpWidget(_buildTestApp(audioService: audio));
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(audio.playedItemIds, ['fr.letter.A']);
     expect(_currentPainter(tester).showGuide, isTrue);
@@ -284,7 +410,7 @@ void main() {
     'screen with stars and a sticker',
     (WidgetTester tester) async {
       await tester.pumpWidget(_buildTestApp());
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       await _traceCurrentItem(tester, isLastOfActivity: false); // "A"
       expect(find.text('Accueil'), findsNothing);
@@ -301,7 +427,7 @@ void main() {
   ) async {
     final audio = _RecordingAudioService();
     await tester.pumpWidget(_buildTestApp(audioService: audio));
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     final canvasRect = tester.getRect(_findTracingCanvas());
     final corner = canvasRect.topLeft + const Offset(10, 10);
@@ -315,7 +441,7 @@ void main() {
     // The replay animation (the mascot "re-showing" the stroke after a
     // failed attempt, CLAUDE.md section 10) has a bounded duration, so it
     // settles on its own like any other finite animation.
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(find.text('Accueil'), findsNothing);
     expect(_findTracingCanvas(), findsOneWidget);
@@ -344,7 +470,7 @@ void main() {
           dayOffset: 0,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
       expect(_currentPainter(tester).showGuide, isTrue);
       await _traceCurrentItem(tester, isLastOfActivity: true);
 
@@ -359,7 +485,7 @@ void main() {
           dayOffset: 0,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
       expect(
         _currentPainter(tester).showGuide,
         isTrue,
@@ -378,7 +504,7 @@ void main() {
           dayOffset: 1,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
       expect(
         _currentPainter(tester).showGuide,
         isFalse,
@@ -402,7 +528,7 @@ void main() {
           repository: repository,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       // Session 1: exactly 5 of the 7 eligible letters (A-E), then Bravo.
       for (var i = 0; i < 5; i++) {
@@ -422,7 +548,7 @@ void main() {
           repository: repository,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
       expect(audio.playedItemIds, ['fr.letter.F']);
 
       for (var i = 0; i < 5; i++) {
@@ -465,7 +591,7 @@ void main() {
           repository: repository,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
 
       // ESTRELLA is 8 letters, capped at 5 per session: E, S, T, R, E.
       expect(audio.playedItemIds, ['fr.letter.E']);
@@ -490,7 +616,7 @@ void main() {
           repository: repository,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilIdle(tester);
       expect(audio2.playedItemIds, ['fr.letter.L']);
 
       for (var i = 0; i < 5; i++) {
@@ -532,7 +658,7 @@ void main() {
         glyphs: glyphs,
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpUntilIdle(tester);
 
     expect(audio.playedItemIds, ['fr.letter.A']);
 
@@ -544,5 +670,167 @@ void main() {
 
     await _traceCurrentItem(tester, isLastOfActivity: true);
     expect(find.text('Accueil'), findsOneWidget);
+  });
+
+  group('stroke-by-stroke tracing (lifting the finger between strokes)', () {
+    for (final glyphKey in ['E', 'A', 'H', 'T', 'R', '4']) {
+      testWidgets(
+        '"$glyphKey" can be traced one stroke at a time, lifting the finger '
+        'between each one, in order',
+        (WidgetTester tester) async {
+          final glyph = _testGlyphs[glyphKey]!;
+          await tester.pumpWidget(
+            _buildTestApp(
+              alphabetJson: _alphabetJsonFor([glyphKey]),
+              childFirstName: glyphKey,
+              glyphs: {glyphKey: glyph},
+            ),
+          );
+          await _pumpUntilIdle(tester);
+
+          await _traceGlyphStrokeByStroke(tester, glyph, isLastOfActivity: true);
+
+          expect(
+            find.text('Accueil'),
+            findsOneWidget,
+            reason: '"$glyphKey" must be recognized as done once every '
+                'stroke is traced separately, lifting between each one — '
+                'this used to fail and require one unbroken gesture instead',
+          );
+        },
+      );
+    }
+
+    testWidgets(
+      'a correctly-drawn stroke stays on screen after lifting the finger, '
+      'even though the letter is not finished yet',
+      (WidgetTester tester) async {
+        final glyph = _testGlyphs['E']!;
+        await tester.pumpWidget(
+          _buildTestApp(
+            alphabetJson: _alphabetJsonFor(['E']),
+            childFirstName: 'E',
+            glyphs: {'E': glyph},
+          ),
+        );
+        await _pumpUntilIdle(tester);
+
+        // Only the first stroke (the vertical spine): lift, and check it
+        // was kept rather than erased (the reported bug: lifting the
+        // finger used to wipe the whole letter and replay the prompt).
+        await _dragStroke(tester, glyph.strokes[0].points);
+        await tester.pump(const Duration(milliseconds: 50));
+        await _pumpUntilIdle(tester);
+
+        expect(find.text('Accueil'), findsNothing, reason: 'the letter is not done yet');
+        expect(
+          _currentPainter(tester).completedStrokes.length,
+          1,
+          reason: 'the correctly-traced first stroke must stay on screen, '
+              'not be erased just because the finger was lifted',
+        );
+
+        // Finish the remaining 3 strokes; the whole letter now succeeds.
+        for (final stroke in glyph.strokes.skip(1)) {
+          await _dragStroke(tester, stroke.points);
+          await tester.pump(const Duration(milliseconds: 50));
+        }
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Accueil'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'drawing a stroke out of order is accepted (no punishment on stroke '
+      'order at this age) and the letter still completes',
+      (WidgetTester tester) async {
+        final glyph = _testGlyphs['H']!;
+        await tester.pumpWidget(
+          _buildTestApp(
+            alphabetJson: _alphabetJsonFor(['H']),
+            childFirstName: 'H',
+            glyphs: {'H': glyph},
+          ),
+        );
+        await _pumpUntilIdle(tester);
+
+        // H's expected order is: left vertical, right vertical, crossbar.
+        // Draw the crossbar (index 2) first instead.
+        await _dragStroke(tester, glyph.strokes[2].points);
+        await tester.pump(const Duration(milliseconds: 50));
+        await _pumpUntilIdle(tester);
+
+        expect(
+          _currentPainter(tester).completedStrokes.length,
+          1,
+          reason: 'the out-of-order stroke is still accepted, not replayed',
+        );
+        expect(find.text('Accueil'), findsNothing);
+
+        // The two remaining strokes, in either order, finish the letter.
+        await _dragStroke(tester, glyph.strokes[0].points);
+        await tester.pump(const Duration(milliseconds: 50));
+        await _pumpUntilIdle(tester);
+        await _dragStroke(tester, glyph.strokes[1].points);
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Accueil'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'a failed stroke only replays and clears that one stroke, keeping '
+      'strokes already completed earlier in the same letter',
+      (WidgetTester tester) async {
+        final glyph = _testGlyphs['T']!;
+        await tester.pumpWidget(
+          _buildTestApp(
+            alphabetJson: _alphabetJsonFor(['T']),
+            childFirstName: 'T',
+            glyphs: {'T': glyph},
+          ),
+        );
+        await _pumpUntilIdle(tester);
+
+        // First stroke (the vertical) succeeds.
+        await _dragStroke(tester, glyph.strokes[0].points);
+        await tester.pump(const Duration(milliseconds: 50));
+        await _pumpUntilIdle(tester);
+        expect(_currentPainter(tester).completedStrokes.length, 1);
+
+        // A scribble nowhere near the remaining top bar fails and replays.
+        final canvasRect = tester.getRect(_findTracingCanvas());
+        final corner = canvasRect.bottomRight - const Offset(10, 10);
+        final gesture = await tester.startGesture(corner);
+        for (var i = 0; i < 5; i++) {
+          await gesture.moveTo(corner - Offset(i * 2.0, 0));
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        await gesture.up();
+        await tester.pump();
+        await _pumpUntilIdle(tester);
+
+        expect(
+          _currentPainter(tester).completedStrokes.length,
+          1,
+          reason: 'the already-completed vertical stroke must still be there',
+        );
+        expect(find.text('Accueil'), findsNothing);
+
+        // The replay animation (1400ms) must finish before input is
+        // accepted again.
+        await tester.pump(const Duration(milliseconds: 1500));
+
+        // The top bar, drawn properly this time, finishes the letter.
+        await _dragStroke(tester, glyph.strokes[1].points);
+        await tester.pump(const Duration(milliseconds: 1700));
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Accueil'), findsOneWidget);
+      },
+    );
   });
 }

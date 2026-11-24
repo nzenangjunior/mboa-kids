@@ -69,24 +69,11 @@ double _nearestDistance(Offset point, List<Offset> candidates) {
   return best;
 }
 
-/// Whether [drawnPoints] (normalized the same way as the guide, 0..1) is a
-/// good enough trace of [glyph].
-///
-/// Two checks, both with wide tolerance:
-/// - coverage: most of the letter's path was actually gone over;
-/// - containment: the finger mostly stayed on the letter rather than
-///   scribbling anywhere on the screen (a few strays near the edges are
-///   fine, which the tolerance and fraction thresholds absorb).
-bool isGoodTrace({
-  required TracingGlyph glyph,
+bool _isGoodMatch({
+  required List<Offset> reference,
   required List<Offset> drawnPoints,
-  TracingTolerance tolerance = defaultTracingTolerance,
+  required TracingTolerance tolerance,
 }) {
-  if (drawnPoints.length < 2) return false;
-
-  final reference = densifyGlyph(glyph);
-  if (reference.isEmpty) return false;
-
   var covered = 0;
   for (final referencePoint in reference) {
     if (_nearestDistance(referencePoint, drawnPoints) <= tolerance.coverageRadius) {
@@ -105,4 +92,42 @@ bool isGoodTrace({
 
   return coverageFraction >= tolerance.minCoverageFraction &&
       containmentFraction >= tolerance.minContainmentFraction;
+}
+
+/// Whether [drawnPoints] (normalized the same way as the guide, 0..1) is a
+/// good enough trace of [glyph] as a whole.
+///
+/// Two checks, both with wide tolerance:
+/// - coverage: most of the letter's path was actually gone over;
+/// - containment: the finger mostly stayed on the letter rather than
+///   scribbling anywhere on the screen (a few strays near the edges are
+///   fine, which the tolerance and fraction thresholds absorb).
+///
+/// This only makes sense for a single continuous gesture covering every
+/// stroke at once. A letter with several strokes (most letters) is drawn
+/// stroke by stroke instead — see [isGoodStrokeTrace] — because a real
+/// finger lifts between strokes (CLAUDE.md section 10).
+bool isGoodTrace({
+  required TracingGlyph glyph,
+  required List<Offset> drawnPoints,
+  TracingTolerance tolerance = defaultTracingTolerance,
+}) {
+  if (drawnPoints.length < 2) return false;
+  final reference = densifyGlyph(glyph);
+  if (reference.isEmpty) return false;
+  return _isGoodMatch(reference: reference, drawnPoints: drawnPoints, tolerance: tolerance);
+}
+
+/// Whether [drawnPoints] (one continuous gesture, lifted at the end) is a
+/// good enough trace of [referenceStroke] alone — the unit a real finger
+/// actually draws in, lifting between strokes (CLAUDE.md section 10).
+bool isGoodStrokeTrace({
+  required TracingStroke referenceStroke,
+  required List<Offset> drawnPoints,
+  TracingTolerance tolerance = defaultTracingTolerance,
+}) {
+  if (drawnPoints.length < 2) return false;
+  final reference = densifyStroke(referenceStroke);
+  if (reference.isEmpty) return false;
+  return _isGoodMatch(reference: reference, drawnPoints: drawnPoints, tolerance: tolerance);
 }

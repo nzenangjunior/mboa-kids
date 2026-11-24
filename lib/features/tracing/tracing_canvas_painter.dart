@@ -5,22 +5,37 @@ import '../../core/tracing/tracing_glyph.dart';
 import '../../core/tracing/tracing_matcher.dart';
 
 /// Draws the dotted letter guide (with a start dot and a direction arrow
-/// per stroke, CLAUDE.md section 10) and the child's own finger-drawn
-/// strokes on top of it.
+/// per stroke, CLAUDE.md section 10), the strokes the child has already
+/// completed (kept, solid), the one stroke currently being drawn, and —
+/// during a replay — a traveling marker over just the stroke being
+/// demonstrated. A letter is drawn stroke by stroke, lifting the finger
+/// between strokes, so each of these is tracked independently rather than
+/// as one flat list of points.
 class TracingCanvasPainter extends CustomPainter {
   TracingCanvasPainter({
     required this.glyph,
-    required this.drawnStrokes,
+    required this.completedStrokes,
+    required this.currentStrokePoints,
     required this.success,
     this.showGuide = true,
+    this.nextStrokeIndex,
+    this.blinkValue = 0,
+    this.replayStrokeIndex,
     this.replayProgress,
   });
 
   final TracingGlyph glyph;
 
-  /// One list of normalized (0..1) points per continuous finger gesture.
-  final List<List<Offset>> drawnStrokes;
+  /// One list of normalized (0..1) points per stroke already matched —
+  /// kept on screen even if a later stroke fails, since only a fresh
+  /// attempt at that later stroke should be replayed, not this one.
+  final List<List<Offset>> completedStrokes;
 
+  /// The points of the stroke currently being drawn (the finger is still
+  /// down, or just lifted and awaiting the match result).
+  final List<Offset> currentStrokePoints;
+
+  /// Whether every stroke has now been matched.
   final bool success;
 
   /// Whether the dotted guide (path, start dot, arrow) is visible. False
@@ -28,9 +43,20 @@ class TracingCanvasPainter extends CustomPainter {
   /// "sans guide" reinforcement pass (CLAUDE.md section 10).
   final bool showGuide;
 
-  /// When non-null (0..1), a traveling marker demonstrates the stroke
-  /// again after a failed attempt — the guide is always shown while this
-  /// plays, even in "sans guide" mode, so the demo makes sense.
+  /// The stroke the child is expected to draw next, whose start dot
+  /// pulses to show where to begin (only while [showGuide] is true: a
+  /// "sans guide" pass gives no such hint).
+  final int? nextStrokeIndex;
+
+  /// 0..1 animation phase driving the pulse on [nextStrokeIndex]'s dot.
+  final double blinkValue;
+
+  /// When [replayProgress] is non-null (0..1), a traveling marker
+  /// demonstrates this one stroke again after a failed attempt — the
+  /// guide for it is always shown while this plays, even in "sans guide"
+  /// mode, so the demo makes sense. Already-completed strokes are
+  /// untouched: only the stroke that failed is replayed.
+  final int? replayStrokeIndex;
   final double? replayProgress;
 
   @override
@@ -38,14 +64,20 @@ class TracingCanvasPainter extends CustomPainter {
     if (showGuide || replayProgress != null) {
       _paintGuide(canvas, size);
     }
-    _paintDrawnStrokes(canvas, size);
-    if (replayProgress != null) {
-      _paintReplayMarker(canvas, size, replayProgress!);
+    _paintStrokePoints(canvas, size, completedStrokes, color: Colors.green.shade600);
+    _paintStrokePoints(
+      canvas,
+      size,
+      [currentStrokePoints],
+      color: success ? Colors.green.shade600 : MboaKidsTheme.pink,
+    );
+    if (replayProgress != null && replayStrokeIndex != null) {
+      _paintReplayMarker(canvas, size, glyph.strokes[replayStrokeIndex!], replayProgress!);
     }
   }
 
-  void _paintReplayMarker(Canvas canvas, Size size, double progress) {
-    final dense = densifyGlyph(glyph);
+  void _paintReplayMarker(Canvas canvas, Size size, TracingStroke stroke, double progress) {
+    final dense = densifyStroke(stroke);
     if (dense.isEmpty) return;
     final t = progress.clamp(0.0, 1.0) * (dense.length - 1);
     final index = t.floor().clamp(0, dense.length - 1);
@@ -73,27 +105,34 @@ class TracingCanvasPainter extends CustomPainter {
     final startDotPaint = Paint()..color = Colors.green.shade400;
     final arrowPaint = Paint()..color = Colors.green.shade400;
 
-    for (final stroke in glyph.strokes) {
-      final points = [for (final p in stroke.points) _scalePoint(p, size)];
+    for (var i = 0; i < glyph.strokes.length; i++) {
+      final points = [for (final p in glyph.strokes[i].points) _scalePoint(p, size)];
       if (points.isEmpty) continue;
       _drawDashedPolyline(canvas, points, guidePaint);
-      canvas.drawCircle(points.first, 13, startDotPaint);
+      final isNext = i == nextStrokeIndex;
+      final radius = isNext ? 13.0 + 8 * blinkValue : 13.0;
+      canvas.drawCircle(points.first, radius, startDotPaint);
       if (points.length >= 2) {
         _drawArrowHead(canvas, points[points.length - 2], points.last, arrowPaint);
       }
     }
   }
 
-  void _paintDrawnStrokes(Canvas canvas, Size size) {
+  void _paintStrokePoints(
+    Canvas canvas,
+    Size size,
+    List<List<Offset>> strokes, {
+    required Color color,
+  }) {
     final paint = Paint()
-      ..color = success ? Colors.green.shade600 : MboaKidsTheme.pink
+      ..color = color
       ..strokeWidth = 16
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    final dotPaint = Paint()..color = paint.color;
+    final dotPaint = Paint()..color = color;
 
-    for (final stroke in drawnStrokes) {
+    for (final stroke in strokes) {
       if (stroke.isEmpty) continue;
       if (stroke.length == 1) {
         canvas.drawCircle(_scaleOffset(stroke.first, size), 8, dotPaint);
@@ -166,9 +205,13 @@ class TracingCanvasPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant TracingCanvasPainter oldDelegate) {
     return oldDelegate.glyph != glyph ||
-        oldDelegate.drawnStrokes != drawnStrokes ||
+        oldDelegate.completedStrokes != completedStrokes ||
+        oldDelegate.currentStrokePoints != currentStrokePoints ||
         oldDelegate.success != success ||
         oldDelegate.showGuide != showGuide ||
+        oldDelegate.nextStrokeIndex != nextStrokeIndex ||
+        oldDelegate.blinkValue != blinkValue ||
+        oldDelegate.replayStrokeIndex != replayStrokeIndex ||
         oldDelegate.replayProgress != replayProgress;
   }
 }
