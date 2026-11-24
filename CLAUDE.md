@@ -169,10 +169,30 @@ fin de chaque étape. Après chaque étape : `flutter analyze`, `flutter test`, 
    île ouverte (1 niveau = 1 paquet du moteur, verrouillé / ouvert en pulsant / terminé avec ses
    meilleures étoiles ; pour le Tracé, le premier niveau est toujours le prénom). Aucun texte sur ces
    écrans : icônes, couleurs, voix. Reste à faire : le jeu-découverte du monde français (A-J, 1-10).
-8. **Nombres** : écoute et touche, compte les objets, glisse le chiffre dans sa silhouette, dizaines.
-9. **Vocabulaire** : animaux et couleurs, image → mot, pont FR → EN.
-10. **Espace parent** : gate, réglages, enregistrement voix, suivi.
-11. **Finition** : performances sur la tablette Android 10, taille de l'APK (< 80 Mo), icône, build
+8. **APK de test** : vérification package/paysage/absence d'INTERNET, voix en-GB/fr-FR explicites
+   (déjà câblées) avec leur disponibilité visible dans `/debug/progress`, build
+   `flutter build apk --release --split-per-abi` signé avec la clé debug pour un premier test sur
+   téléphone Android (hors tablette).
+9. **Refonte visuelle** : mascotte perroquet gris (dessinée en formes simples, pas d'image
+   téléchargée) avec 4 états (repos, joie, réflexion, sommeil), présente sur l'accueil, le chemin de
+   niveaux et dans les jeux ; accueil en scène (ciel, sol, baobab, bulle de parole, badge album,
+   cadenas parent en appui long de 2 s) ; chemin de niveaux en tracé sinueux avec le perroquet posé
+   sur le niveau en cours ; jeux avec fond décoré par île et barre de progression à 5 points ; album
+   devenu la maison du perroquet, décorée avec les autocollants ; motifs pagne/ndop discrets en fond.
+   Règles inchangées : aucun texte pour l'enfant, boutons ≥ 64 dp, intensité réglable, fluide sur
+   Android 10 d'entrée de gamme.
+10. **Minuscules (monde anglais)** : `assets/content/tracing/en_lowercase.json` séparé des
+    majuscules, ordre des traits selon l'écriture scolaire britannique (lettres rondes commencées en
+    haut à droite, sens inverse des aiguilles d'une montre, point du i/j en dernier), lignes
+    d'écriture à l'écran (base/milieu/haut), minuscule débloquée quand sa majuscule est reconnue
+    (paire montrée au début avec la voix), prénom anglais « Estrella » (E majuscule puis
+    minuscules), champ `style` (print/precursive/cursive) dans le JSON pour préparer la cursive
+    française plus tard sans changer le code (non construite dans ce bloc : en attente d'une photo
+    du cahier d'école).
+11. **Nombres** : écoute et touche, compte les objets, glisse le chiffre dans sa silhouette, dizaines.
+12. **Vocabulaire** : animaux et couleurs, image → mot, pont FR → EN.
+13. **Espace parent** : gate, réglages, enregistrement voix, suivi.
+14. **Finition** : performances sur la tablette Android 10, taille de l'APK (< 80 Mo), icône, build
     release signé, `README.md` d'installation.
 
 ## 11. Conventions

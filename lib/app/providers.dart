@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
+import 'package:flutter_tts/flutter_tts.dart';
 
 import '../core/audio/audio_service.dart';
 import '../core/audio/clip_audio_service.dart';
@@ -298,4 +299,23 @@ final audioServiceProvider = FutureProvider.family<AudioService, String>((
     promptAudioPaths: const {},
     sfxAudioPaths: const {},
   );
+});
+
+/// Whether the device has the exact voice each world's TTS fallback asks
+/// for installed (CLAUDE.md §7: en-GB, fr-FR — never a generic English or
+/// French). Surfaced in `/debug/progress` so a missing voice on a test
+/// phone is visible without plugging it into a computer to read logs.
+final voiceAvailabilityProvider = FutureProvider<Map<String, bool>>((ref) async {
+  final tts = FlutterTts();
+  final result = <String, bool>{};
+  for (final locale in const ['en-GB', 'fr-FR']) {
+    try {
+      final available = await tts.isLanguageAvailable(locale);
+      result[locale] = available == true;
+    } catch (error) {
+      debugPrint('[voices] isLanguageAvailable("$locale") failed: $error');
+      result[locale] = false;
+    }
+  }
+  return result;
 });

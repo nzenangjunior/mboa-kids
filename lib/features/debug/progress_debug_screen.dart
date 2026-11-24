@@ -69,20 +69,80 @@ class ProgressDebugScreen extends ConsumerWidget {
         label: const Text('Simuler +1 jour'),
         icon: const Icon(Icons.fast_forward),
       ),
-      body: alphabetAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => const Center(child: Text('Erreur de chargement')),
-        // Keyed on `world`: without this, switching FR/EN keeps the same
-        // `_ItemList` element, and its FutureBuilder keeps showing the
-        // previous world's (now stale) snapshot data — built from the old
-        // `orderedIds` — while `alphabet.items` has already moved to the
-        // new world, until the new future resolves. `data.snapshots[id]!`
-        // then finds no entry for an id from the new world and throws. The
-        // key forces a fresh `_ItemList` (and FutureBuilder) per world
-        // instead, with no stale data to show in between.
-        data: (alphabet) =>
-            _ItemList(key: ValueKey(world), world: world, alphabet: alphabet),
+      body: Column(
+        children: [
+          const _VoiceAvailabilityBanner(),
+          Expanded(
+            child: alphabetAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) =>
+                  const Center(child: Text('Erreur de chargement')),
+              // Keyed on `world`: without this, switching FR/EN keeps the
+              // same `_ItemList` element, and its FutureBuilder keeps
+              // showing the previous world's (now stale) snapshot data —
+              // built from the old `orderedIds` — while `alphabet.items`
+              // has already moved to the new world, until the new future
+              // resolves. `data.snapshots[id]!` then finds no entry for an
+              // id from the new world and throws. The key forces a fresh
+              // `_ItemList` (and FutureBuilder) per world instead, with no
+              // stale data to show in between.
+              data: (alphabet) =>
+                  _ItemList(key: ValueKey(world), world: world, alphabet: alphabet),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+/// Shows whether the exact voice each world's TTS fallback needs (en-GB,
+/// fr-FR) is installed on this device/browser — see [voiceAvailabilityProvider].
+class _VoiceAvailabilityBanner extends ConsumerWidget {
+  const _VoiceAvailabilityBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final voicesAsync = ref.watch(voiceAvailabilityProvider);
+
+    return voicesAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(8),
+        child: LinearProgressIndicator(),
+      ),
+      error: (error, stackTrace) => const Padding(
+        padding: EdgeInsets.all(8),
+        child: Text('Voix : vérification impossible'),
+      ),
+      data: (voices) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Wrap(
+          spacing: 16,
+          children: [
+            _VoiceChip(label: 'Voix EN (en-GB)', available: voices['en-GB'] ?? false),
+            _VoiceChip(label: 'Voix FR (fr-FR)', available: voices['fr-FR'] ?? false),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VoiceChip extends StatelessWidget {
+  const _VoiceChip({required this.label, required this.available});
+
+  final String label;
+  final bool available;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: Icon(
+        available ? Icons.check_circle : Icons.error,
+        color: available ? Colors.green.shade700 : Colors.red.shade700,
+        size: 18,
+      ),
+      label: Text('$label : ${available ? "disponible" : "absente"}'),
     );
   }
 }
