@@ -13,6 +13,10 @@ import '../../core/rewards/intensity_level.dart';
 
 final _debugWorldProvider = StateProvider<String>((ref) => 'fr');
 
+/// Bumped after [ProgressRepository.resetAll] so [_ItemList] (which has no
+/// other reason to rebuild on a reset) reloads its data.
+final _resetTickProvider = StateProvider<int>((ref) => 0);
+
 /// Temporary parent/dev screen (not part of the child-facing app) showing
 /// every letter's progression state for either world, used while there
 /// is no tablet to test on. Reachable at `/debug/progress`. To remove
@@ -61,6 +65,11 @@ class ProgressDebugScreen extends ConsumerWidget {
                 },
               ),
             ),
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            tooltip: 'Réinitialiser la base',
+            onPressed: () => _confirmAndResetDatabase(context, ref),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -96,6 +105,48 @@ class ProgressDebugScreen extends ConsumerWidget {
   }
 }
 
+/// Wipes every table after an explicit confirmation (CLAUDE.md section
+/// 7bis) — the one way to recover a corrupted database (dev or real)
+/// without clearing app/browser storage by hand. Already behind the
+/// parent gate's calculation, since this whole screen only opens after
+/// it (CLAUDE.md section 9).
+Future<void> _confirmAndResetDatabase(BuildContext context, WidgetRef ref) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Réinitialiser la base ?'),
+      content: const Text(
+        'Toute la progression, les étoiles, les autocollants, le monde choisi et '
+        'les réglages seront effacés. Action irréversible.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('Réinitialiser'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+
+  await ref.read(progressRepositoryProvider).resetAll();
+  ref.invalidate(intensityProvider);
+  ref.invalidate(voiceAvailabilityProvider);
+  ref.invalidate(albumHasNewStickerProvider);
+  ref.read(_resetTickProvider.notifier).state++;
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Base réinitialisée.')));
+  }
+}
+
 /// Shows whether the exact voice each world's TTS fallback needs (en-GB,
 /// fr-FR) is installed on this device/browser — see [voiceAvailabilityProvider].
 class _VoiceAvailabilityBanner extends ConsumerWidget {
@@ -119,8 +170,8 @@ class _VoiceAvailabilityBanner extends ConsumerWidget {
         child: Wrap(
           spacing: 16,
           children: [
-            _VoiceChip(label: 'Voix EN (en-GB)', available: voices['en-GB'] ?? false),
-            _VoiceChip(label: 'Voix FR (fr-FR)', available: voices['fr-FR'] ?? false),
+            _VoiceChip(label: 'Voix EN', target: 'en-GB', resolved: voices['en-GB']),
+            _VoiceChip(label: 'Voix FR', target: 'fr-FR', resolved: voices['fr-FR']),
           ],
         ),
       ),
@@ -128,21 +179,38 @@ class _VoiceAvailabilityBanner extends ConsumerWidget {
   }
 }
 
+/// Shows the locale actually resolved for [target] (CLAUDE.md section 6):
+/// the exact voice, a same-language fallback accent, or none at all —
+/// never just a yes/no, since a silent fallback and an accented one look
+/// identical from a plain boolean.
 class _VoiceChip extends StatelessWidget {
-  const _VoiceChip({required this.label, required this.available});
+  const _VoiceChip({required this.label, required this.target, required this.resolved});
 
   final String label;
-  final bool available;
+  final String target;
+  final String? resolved;
 
   @override
   Widget build(BuildContext context) {
+    final IconData icon;
+    final Color color;
+    final String detail;
+    if (resolved == target) {
+      icon = Icons.check_circle;
+      color = Colors.green.shade700;
+      detail = 'voix exacte ($target)';
+    } else if (resolved != null) {
+      icon = Icons.warning_amber;
+      color = Colors.orange.shade700;
+      detail = 'repli sur "$resolved" ($target absente)';
+    } else {
+      icon = Icons.error;
+      color = Colors.red.shade700;
+      detail = 'aucune voix ($target absente)';
+    }
     return Chip(
-      avatar: Icon(
-        available ? Icons.check_circle : Icons.error,
-        color: available ? Colors.green.shade700 : Colors.red.shade700,
-        size: 18,
-      ),
-      label: Text('$label : ${available ? "disponible" : "absente"}'),
+      avatar: Icon(icon, color: color, size: 18),
+      label: Text('$label : $detail'),
     );
   }
 }
@@ -157,6 +225,7 @@ class _ItemList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.watch(progressRepositoryProvider);
     final offsetDays = ref.watch(simulatedDayOffsetProvider);
+    ref.watch(_resetTickProvider);
 
     final orderedIds = alphabet.items.map((i) => i.id).toList();
     final startIds = startUnlockedAlphabetItemIds(world, alphabet.items);

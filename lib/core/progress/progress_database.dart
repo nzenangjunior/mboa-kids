@@ -144,24 +144,33 @@ class TracingGuidedSuccessDays extends Table {
 class ProgressDatabase extends _$ProgressDatabase {
   ProgressDatabase(super.executor);
 
+  // IMPORTANT (see CLAUDE.md section 7bis): any change to a table here —
+  // a new column, a new table, a renamed one — must come with (1) a bump
+  // of `schemaVersion` below, (2) its own `if (from < N)` step in
+  // `migration.onUpgrade`, (3) a fresh schema dump in `drift_schemas/`
+  // (`dart run drift_dev schema dump lib/core/progress/progress_database.dart
+  // drift_schemas/`), and (4) the matching `SchemaVerifier` case in
+  // `test/core/progress/progress_database_migration_test.dart`. Reusing an
+  // existing version number for a new step is the exact bug reproduced
+  // live and described below.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
       if (from < 2) {
-        await m.createTable(tracingGuidedSuccessDays);
-        await m.addColumn(settingsRows, settingsRows.tracingQueueCursor);
+        await _createTableIfMissing(m, tracingGuidedSuccessDays);
+        await _addColumnIfMissing(m, settingsRows, settingsRows.tracingQueueCursor);
       }
       if (from < 3) {
-        await m.addColumn(settingsRows, settingsRows.world);
-        await m.createTable(levelBestStarRows);
+        await _addColumnIfMissing(m, settingsRows, settingsRows.world);
+        await _createTableIfMissing(m, levelBestStarRows);
       }
       if (from < 4) {
-        await m.addColumn(settingsRows, settingsRows.albumLastSeenCount);
-        await m.createTable(stickerPositionRows);
+        await _addColumnIfMissing(m, settingsRows, settingsRows.albumLastSeenCount);
+        await _createTableIfMissing(m, stickerPositionRows);
       }
       // `schemaVersion` must go up every time a new migration step is
       // added here, even one that only reaches `hasShownPlayHint` — a
@@ -172,8 +181,67 @@ class ProgressDatabase extends _$ProgressDatabase {
       // physical `has_shown_play_hint` column, because that version
       // number was reused instead of bumped when this step was added).
       if (from < 6) {
-        await m.addColumn(settingsRows, settingsRows.hasShownPlayHint);
+        await _addColumnIfMissing(m, settingsRows, settingsRows.hasShownPlayHint);
+      }
+      // `albumLastSeenCount` was changed from non-nullable-with-default to
+      // nullable without its own migration step (same root mistake as
+      // above), so any install that was already at v4 or later before that
+      // change shipped is physically stuck with `NOT NULL DEFAULT 0` on
+      // that column forever — SQLite can't ALTER a column's constraint
+      // directly, hence the full recreate via `alterTable` (caught by the
+      // migration test suite: "migrates from v4" failed a strict schema
+      // comparison, "NOT NULL DEFAULT 0" vs the nullable column the
+      // current code expects — never observed as a runtime crash since a
+      // concrete int reads back fine into a nullable Dart field, but a
+      // real divergence from what the code declares).
+      if (from < 7) {
+        await m.alterTable(TableMigration(settingsRows));
       }
     },
+    // Defensive, version-number-agnostic safety net (reproduced live: a
+    // dev database can end up recorded at a version that matches
+    // `schemaVersion` without every column above ever having actually
+    // landed, e.g. from iterating on the schema with hot reloads before a
+    // version bump was committed — `onUpgrade` above never even runs for
+    // such a database, since drift only calls it when `from != to`). This
+    // runs on every open regardless of the recorded version and repairs
+    // any of these specific columns if still missing, so a corrupted dev
+    // install self-heals instead of staying broken forever.
+    beforeOpen: (details) async {
+      final m = Migrator(this);
+      await _addColumnIfMissing(m, settingsRows, settingsRows.tracingQueueCursor);
+      await _addColumnIfMissing(m, settingsRows, settingsRows.world);
+      await _addColumnIfMissing(m, settingsRows, settingsRows.albumLastSeenCount);
+      await _addColumnIfMissing(m, settingsRows, settingsRows.hasShownPlayHint);
+    },
   );
+
+  Future<bool> _hasColumn(String table, String column) async {
+    final info = await customSelect('PRAGMA table_info($table)').get();
+    return info.any((row) => row.data['name'] == column);
+  }
+
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    GeneratedColumn column,
+  ) async {
+    if (!await _hasColumn(table.actualTableName, column.$name)) {
+      await m.addColumn(table, column);
+    }
+  }
+
+  Future<bool> _hasTable(String table) async {
+    final info = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable(table)],
+    ).get();
+    return info.isNotEmpty;
+  }
+
+  Future<void> _createTableIfMissing(Migrator m, TableInfo<Table, dynamic> table) async {
+    if (!await _hasTable(table.actualTableName)) {
+      await m.createTable(table);
+    }
+  }
 }

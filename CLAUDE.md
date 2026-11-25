@@ -130,6 +130,32 @@ est stockée par id.
 - Le tracé ne propose que des lettres déjà reconnues, sauf le **prénom** (tracé dès le début).
 - La séance s'arrête à la durée choisie (5/10/15 min) après le jeu en cours → écran « la mascotte dort ».
 
+## 7bis. Migrations de la base (drift)
+
+Trouvé en production (schéma bloqué sur une installation déjà à jour) : toute modification d'une
+table dans `lib/core/progress/progress_database.dart` — nouvelle colonne, nouvelle table,
+changement de contrainte (ex. nullable ↔ non-nullable), renommage — **doit** s'accompagner des
+quatre étapes suivantes, dans cet ordre, et dans le même commit :
+
+1. Incrémenter `schemaVersion`. Ne jamais réutiliser un numéro de version déjà sorti, même pour
+   un ajout qui semble mineur : une base déjà à ce numéro ne reverrait jamais l'étape.
+2. Écrire l'étape `if (from < N) { ... }` correspondante dans `migration.onUpgrade`, avec le
+   nouveau `N`. Utiliser les variantes idempotentes de `progress_database.dart`
+   (`_addColumnIfMissing`, `_createTableIfMissing`) plutôt que `m.addColumn`/`m.createTable`
+   directement — une base de dev peut se retrouver dans un état intermédiaire où la colonne existe
+   déjà sous un ancien numéro de version. Pour un changement de contrainte sur une colonne
+   existante (SQLite ne sait pas altérer une contrainte directement), utiliser
+   `m.alterTable(TableMigration(table))`, qui recrée la table et recopie les données.
+3. Exporter le schéma : `dart run drift_dev schema dump lib/core/progress/progress_database.dart
+   drift_schemas/`.
+4. Régénérer les aides de test puis ajouter/vérifier le test de migration :
+   `dart run drift_dev schema generate --data-classes --companions drift_schemas/
+   test/generated_migrations/`, puis `flutter test
+   test/core/progress/progress_database_migration_test.dart` (ce fichier teste automatiquement
+   TOUTES les anciennes versions vers la version actuelle, avec des données dedans — pas besoin
+   de lui ajouter un cas par version, seul le dernier test de données réelles peut avoir besoin
+   d'une mise à jour s'il porte sur la colonne changée).
+
 ## 8. Récompenses
 
 - Bonne réponse : son + petite animation + voix courte.

@@ -110,4 +110,39 @@ void main() {
       expect(await repository.bestStarsFor('fr.alphabet.pack2'), 0);
     });
   });
+
+  group('resetAll (CLAUDE.md section 7bis: debug panel recovery button)', () {
+    test('wipes progress, settings and level stars back to their fresh-install defaults', () async {
+      await repository.recordAnswer(
+        itemId: 'en.letter.F',
+        correct: true,
+        firstTry: true,
+        today: DateTime(2026, 1, 1),
+      );
+      await repository.setLastWorld('en');
+      await repository.setAlbumLastSeenCount(3);
+      await repository.setHasShownPlayHint(true);
+      await repository.recordStickerEarned('sticker.parrot', DateTime(2026, 1, 1));
+      await repository.recordLevelStars('fr.alphabet.pack1', 3);
+
+      await repository.resetAll();
+
+      expect(
+        (await repository.snapshotFor('en.letter.F')).state,
+        ItemState.aApprendre,
+      );
+      expect(await repository.lastWorld(), isNull);
+      expect(await repository.albumLastSeenCount(), 0);
+      expect(await repository.hasShownPlayHint(), isFalse);
+      expect(await repository.earnedStickerIds(), isEmpty);
+      expect(await repository.bestStarsFor('fr.alphabet.pack1'), 0);
+    });
+
+    test('the database stays usable afterwards (not left in some half-open state)', () async {
+      await repository.resetAll();
+
+      await repository.seed('en.letter.A', ItemState.aRevoir);
+      expect((await repository.snapshotFor('en.letter.A')).state, ItemState.aRevoir);
+    });
+  });
 }

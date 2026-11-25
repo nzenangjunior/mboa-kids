@@ -281,5 +281,14 @@ class DriftProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<void> resetAll() {
+    return _db.transaction(() async {
+      for (final table in _db.allTables) {
+        await _db.customStatement('DELETE FROM ${table.actualTableName}');
+      }
+    });
+  }
+
+  @override
   Future<void> dispose() => _db.close();
 }

@@ -12,6 +12,16 @@ abstract class SpeechEngine {
   /// a phrase that never reports completion (see [speak]'s doc) can't go
   /// on blocking every later call.
   Future<void> stop();
+
+  /// Resolves which locale would actually be used to speak [requested]
+  /// right now: [requested] itself if that exact voice is installed, any
+  /// other voice in the same language if not (e.g. some `en-US` when
+  /// `en-GB` is missing — CLAUDE.md section 6: a wrong accent is better
+  /// than no voice at all for a child who can't read), or `null` if the
+  /// device has no voice in that language at all, meaning [speak] will
+  /// stay silent. Exposed so the parent debug panel can show the voice
+  /// really in use, not just whether one exact locale is installed.
+  Future<String?> resolveLocale(String requested);
 }
 
 class FlutterTtsSpeechEngine implements SpeechEngine {
@@ -31,12 +41,16 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
   bool _awaitCompletionSet = false;
   Future<void> _queue = Future<void>.value();
 
-  /// Checked once per locale, never again: a device/browser without the
-  /// requested voice is never going to grow one mid-session, so there's
-  /// no reason to pay [_speakTimeout]'s wait on every single call after
-  /// the first — reproduced live, where every failed instruction added a
-  /// multi-second delay that compounded across a whole game.
-  final Map<String, bool> _localeAvailability = {};
+  /// Resolved once per requested locale, never again: a device/browser's
+  /// installed voices aren't going to change mid-session, so there's no
+  /// reason to re-query them (and pay [_speakTimeout]'s wait) on every
+  /// single call after the first — reproduced live, where every failed
+  /// instruction added a multi-second delay that compounded across a
+  /// whole game. Maps the requested locale (e.g. "en-GB") to the locale
+  /// to actually speak in, which may be a same-language fallback (e.g.
+  /// "en"), or is absent from the map's keys until resolved, or maps to
+  /// `null` if nothing in that language exists at all.
+  final Map<String, String?> _resolvedLocale = {};
 
   /// Bumped by [stop]. A queued [_speakNow] call captures the generation it
   /// was queued under and checks it before doing anything observable, so a
@@ -70,31 +84,61 @@ class FlutterTtsSpeechEngine implements SpeechEngine {
     await _ensureAwaitsCompletion();
     if (generation != _generation) return;
 
-    var available = _localeAvailability[locale];
-    if (available == null) {
-      available = await _tts.isLanguageAvailable(locale) == true;
-      _localeAvailability[locale] = available;
-      if (!available) {
-        debugPrint(
-          '[AudioService] Aucune voix TTS "$locale" trouvée sur cet '
-          'appareil/navigateur ; plus aucune tentative ne sera faite pour '
-          'cette voix cette session (le jeu ne doit jamais attendre une '
-          'voix absente).',
-        );
-      }
-    }
-    // Never wait on a voice already known absent: speak()/the 4s timeout
-    // below exist for a voice that might still answer, not for one that
-    // has already proven it won't.
-    if (!available) return;
+    final resolved = await _resolveAndCache(locale);
+    // Never wait on a language already known entirely absent: speak()/the
+    // 4s timeout below exist for a voice that might still answer, not for
+    // one that has already proven it won't.
+    if (resolved == null) return;
 
-    if (_currentLocale != locale) {
-      await _tts.setLanguage(locale);
-      _currentLocale = locale;
+    if (_currentLocale != resolved) {
+      await _tts.setLanguage(resolved);
+      _currentLocale = resolved;
     }
     if (generation != _generation) return;
 
     await _tts.speak(text).timeout(_speakTimeout, onTimeout: () => null);
+  }
+
+  @override
+  Future<String?> resolveLocale(String requested) async {
+    await _ensureVoicesLoaded();
+    return _resolveAndCache(requested);
+  }
+
+  Future<String?> _resolveAndCache(String requested) async {
+    if (_resolvedLocale.containsKey(requested)) {
+      return _resolvedLocale[requested];
+    }
+
+    // CLAUDE.md section 6: a wrong-accent voice beats silence for a child
+    // who can't read — try the exact locale first, then any other voice
+    // in the same language, and only give up (speak() will then stay
+    // silent) if the device has nothing in that language at all.
+    String? resolved;
+    if (await _tts.isLanguageAvailable(requested) == true) {
+      resolved = requested;
+    } else {
+      final languagePrefix = requested.split('-').first;
+      if (await _tts.isLanguageAvailable(languagePrefix) == true) {
+        resolved = languagePrefix;
+      }
+    }
+
+    _resolvedLocale[requested] = resolved;
+    if (resolved == null) {
+      debugPrint(
+        '[AudioService] Aucune voix TTS pour la langue de "$requested" '
+        'trouvée sur cet appareil/navigateur (ni exacte, ni dans la même '
+        'langue) ; plus aucune tentative ne sera faite cette session (le '
+        'jeu ne doit jamais attendre une voix absente).',
+      );
+    } else if (resolved != requested) {
+      debugPrint(
+        '[AudioService] Voix "$requested" absente ; repli sur une voix '
+        '"$resolved" (même langue) plutôt que le silence.',
+      );
+    }
+    return resolved;
   }
 
   /// Interrupts whatever is currently speaking and drops every utterance

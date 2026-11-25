@@ -97,5 +97,13 @@ abstract class ProgressRepository {
 
   Future<void> setHasShownPlayHint(bool value);
 
+  /// Wipes every row in every table: all progress, settings, stickers and
+  /// level stars — a fresh install in all but name. Reachable only from
+  /// the parent space's debug panel, itself behind the parent gate's
+  /// calculation (CLAUDE.md section 9), as a way to recover from a
+  /// corrupted database without needing to clear app/browser storage by
+  /// hand (CLAUDE.md section 7bis).
+  Future<void> resetAll();
+
   Future<void> dispose();
 }

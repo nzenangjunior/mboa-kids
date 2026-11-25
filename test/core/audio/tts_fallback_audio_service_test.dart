@@ -19,6 +19,9 @@ class _FakeSpeechEngine implements SpeechEngine {
 
   @override
   Future<void> stop() async => stopCalls++;
+
+  @override
+  Future<String?> resolveLocale(String requested) async => requested;
 }
 
 void main() {

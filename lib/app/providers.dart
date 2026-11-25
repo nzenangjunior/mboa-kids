@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
-import 'package:flutter_tts/flutter_tts.dart';
 
 import '../core/audio/audio_service.dart';
 import '../core/audio/clip_audio_service.dart';
@@ -373,19 +372,22 @@ final audioServiceProvider = FutureProvider.family<AudioService, String>((
 });
 
 /// Whether the device has the exact voice each world's TTS fallback asks
-/// for installed (CLAUDE.md §7: en-GB, fr-FR — never a generic English or
-/// French). Surfaced in `/debug/progress` so a missing voice on a test
-/// phone is visible without plugging it into a computer to read logs.
-final voiceAvailabilityProvider = FutureProvider<Map<String, bool>>((ref) async {
-  final tts = FlutterTts();
-  final result = <String, bool>{};
+/// for installed (CLAUDE.md §6/§7: en-GB, fr-FR by preference, any other
+/// voice in the same language as a fallback — never silence, and never a
+/// different language). Surfaced in `/debug/progress` so the voice really
+/// in use (exact, a fallback accent, or none at all) is visible without
+/// plugging the device into a computer to read logs. Maps each target
+/// locale to the locale actually resolved, or null if even the fallback
+/// is absent.
+final voiceAvailabilityProvider = FutureProvider<Map<String, String?>>((ref) async {
+  final engine = FlutterTtsSpeechEngine();
+  final result = <String, String?>{};
   for (final locale in const ['en-GB', 'fr-FR']) {
     try {
-      final available = await tts.isLanguageAvailable(locale);
-      result[locale] = available == true;
+      result[locale] = await engine.resolveLocale(locale);
     } catch (error) {
-      debugPrint('[voices] isLanguageAvailable("$locale") failed: $error');
-      result[locale] = false;
+      debugPrint('[voices] resolveLocale("$locale") failed: $error');
+      result[locale] = null;
     }
   }
   return result;

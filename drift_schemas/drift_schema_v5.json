@@ -1,0 +1,458 @@
+{
+  "_meta": {
+    "description": "This file contains a serialized version of schema entities for drift.",
+    "version": "1.3.0"
+  },
+  "options": {
+    "store_date_time_values_as_text": false
+  },
+  "entities": [
+    {
+      "id": 0,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "item_progress_rows",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "item_id",
+            "getter_name": "itemId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "state",
+            "getter_name": "state",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumIndexConverter<ItemState>(ItemState.values)",
+              "dart_type_name": "ItemState"
+            }
+          },
+          {
+            "name": "correct_first_try_count",
+            "getter_name": "correctFirstTryCount",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "consecutive_wrong",
+            "getter_name": "consecutiveWrong",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "first_acquired_at",
+            "getter_name": "firstAcquiredAt",
+            "moor_type": "dateTime",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "review_stage",
+            "getter_name": "reviewStage",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "next_due_at",
+            "getter_name": "nextDueAt",
+            "moor_type": "dateTime",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "correct_first_try_days",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "item_id",
+            "getter_name": "itemId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "day",
+            "getter_name": "day",
+            "moor_type": "dateTime",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "item_id",
+          "day"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "earned_sticker_rows",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "PRIMARY KEY AUTOINCREMENT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "PRIMARY KEY AUTOINCREMENT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "auto-increment"
+            ]
+          },
+          {
+            "name": "sticker_id",
+            "getter_name": "stickerId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "earned_at",
+            "getter_name": "earnedAt",
+            "moor_type": "dateTime",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": []
+      }
+    },
+    {
+      "id": 3,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "settings_rows",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "intensity",
+            "getter_name": "intensity",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('\\'normal\\'')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "tracing_queue_cursor",
+            "getter_name": "tracingQueueCursor",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "world",
+            "getter_name": "world",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "album_last_seen_count",
+            "getter_name": "albumLastSeenCount",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "has_shown_play_hint",
+            "getter_name": "hasShownPlayHint",
+            "moor_type": "bool",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"has_shown_play_hint\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"has_shown_play_hint\" IN (0, 1))"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "tracing_guided_success_days",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "item_id",
+            "getter_name": "itemId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "day",
+            "getter_name": "day",
+            "moor_type": "dateTime",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "item_id",
+          "day"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "level_best_star_rows",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "level_id",
+            "getter_name": "levelId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "best_stars",
+            "getter_name": "bestStars",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "level_id"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "sticker_position_rows",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "sticker_id",
+            "getter_name": "stickerId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "dx",
+            "getter_name": "dx",
+            "moor_type": "double",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "dy",
+            "getter_name": "dy",
+            "moor_type": "double",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "sticker_id"
+        ]
+      }
+    }
+  ],
+  "fixed_sql": [
+    {
+      "name": "item_progress_rows",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"item_progress_rows\" (\"item_id\" TEXT NOT NULL, \"state\" INTEGER NOT NULL, \"correct_first_try_count\" INTEGER NOT NULL DEFAULT 0, \"consecutive_wrong\" INTEGER NOT NULL DEFAULT 0, \"first_acquired_at\" INTEGER NULL, \"review_stage\" INTEGER NOT NULL DEFAULT 0, \"next_due_at\" INTEGER NULL, PRIMARY KEY (\"item_id\"));"
+        }
+      ]
+    },
+    {
+      "name": "correct_first_try_days",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"correct_first_try_days\" (\"item_id\" TEXT NOT NULL, \"day\" INTEGER NOT NULL, PRIMARY KEY (\"item_id\", \"day\"));"
+        }
+      ]
+    },
+    {
+      "name": "earned_sticker_rows",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"earned_sticker_rows\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"sticker_id\" TEXT NOT NULL, \"earned_at\" INTEGER NOT NULL);"
+        }
+      ]
+    },
+    {
+      "name": "settings_rows",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"settings_rows\" (\"id\" INTEGER NOT NULL, \"intensity\" TEXT NOT NULL DEFAULT 'normal', \"tracing_queue_cursor\" TEXT NULL, \"world\" TEXT NULL, \"album_last_seen_count\" INTEGER NULL, \"has_shown_play_hint\" INTEGER NULL CHECK (\"has_shown_play_hint\" IN (0, 1)), PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "tracing_guided_success_days",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"tracing_guided_success_days\" (\"item_id\" TEXT NOT NULL, \"day\" INTEGER NOT NULL, PRIMARY KEY (\"item_id\", \"day\"));"
+        }
+      ]
+    },
+    {
+      "name": "level_best_star_rows",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"level_best_star_rows\" (\"level_id\" TEXT NOT NULL, \"best_stars\" INTEGER NOT NULL, PRIMARY KEY (\"level_id\"));"
+        }
+      ]
+    },
+    {
+      "name": "sticker_position_rows",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"sticker_position_rows\" (\"sticker_id\" TEXT NOT NULL, \"dx\" REAL NOT NULL, \"dy\" REAL NOT NULL, PRIMARY KEY (\"sticker_id\"));"
+        }
+      ]
+    }
+  ]
+}
